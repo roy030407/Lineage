@@ -30,3 +30,17 @@
 
 ## After each task
 Print: files changed | tests added | tests passing | what I did NOT do
+
+## Git workflow
+- After each approved task passes /verify with a PASS verdict, commit and
+  push to origin/master automatically — no need to ask each time.
+- Write commit messages as: one-line summary of the task, then a short
+  body listing files changed and test count, matching the format you've
+  been reporting in-chat.
+- Exceptions — always ask first, never do these silently:
+  - Force-pushing, rewriting history, or anything touching an existing
+    commit.
+  - Creating or deleting a remote repository, branch, or GitHub resource.
+  - Any push when /verify returned BLOCK or wasn't run.
+  - The first push of a new remote/origin (that's a one-time ask, already
+    covered for this session).
