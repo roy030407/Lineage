@@ -57,6 +57,16 @@ RATE_BY_KIND = {
 MANUAL_INDICES = {0, 1, 2, 3} | {16, 17, 18, 19, 20, 21, 22, 23} | {30}
 MIXED_INDICES = {5, 33, 38}
 
+# End of body (ST-16), end of paint (ST-26), and final roll test (ST-42): the
+# line's three inspection checkpoints, where pass/fail results are recorded.
+INSPECTION_INDICES = {15, 25, 41}
+
+MANUAL_QUANTITY_BY_ZONE = {
+    Zone.BODY: "torque_nm",
+    Zone.PAINT: "coat_thickness_um",
+    Zone.FINAL: "torque_nm",
+}
+
 
 def zone_for(i: int) -> Zone:
     if i < 16:
@@ -141,13 +151,25 @@ def build_station(i: int) -> StationSpec:
     changeable_params = (
         {} if manual else {"line_speed_pct": ParamRange(min=80.0, max=110.0, step=1.0)}
     )
-    readable_params = (
-        ["visual_pass_fail", "operator_notes"] if manual else [s.id for s in sensors]
-    )
-    baseline = None if manual else build_baseline(sensors, i)
+
+    if manual:
+        quantity = MANUAL_QUANTITY_BY_ZONE[zone]
+        readable_params = [quantity]
+        baseline = CommissioningBaseline(
+            idle=ConditionStats(mean={quantity: 10.0 + i}, std={quantity: 0.5 + 0.01 * i}),
+            loaded=ConditionStats(mean={quantity: 15.0 + i}, std={quantity: 0.8 + 0.01 * i}),
+        )
+    else:
+        readable_params = [s.id for s in sensors]
+        baseline = build_baseline(sensors, i)
 
     name_prefix = {Zone.BODY: "Body", Zone.PAINT: "Paint", Zone.FINAL: "Final"}[zone]
     name = f"{name_prefix} Station {i + 1}" + (" (Manual)" if manual else "")
+    is_inspection_station = i in INSPECTION_INDICES
+    if i == 41:
+        name = "Final Roll Test"
+    elif is_inspection_station:
+        name += " (Zone Inspection)"
 
     return StationSpec(
         id=station_id,
@@ -156,6 +178,7 @@ def build_station(i: int) -> StationSpec:
         sequence_index=i,
         sensors=sensors,
         acquisition_mode=mode,
+        is_inspection_station=is_inspection_station,
         cycle_time_nominal_s=cycle_time,
         commissioning_baseline=baseline,
         changeable_params=changeable_params,

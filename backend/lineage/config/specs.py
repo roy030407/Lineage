@@ -89,6 +89,7 @@ class StationSpec(BaseModel):
     sequence_index: int = Field(ge=0)
     sensors: list[SensorSpec] = Field(default_factory=list)
     acquisition_mode: AcquisitionMode
+    is_inspection_station: bool = False
     cycle_time_nominal_s: float = Field(gt=0)
     commissioning_baseline: CommissioningBaseline | None = None
     changeable_params: dict[str, ParamRange] = Field(default_factory=dict)

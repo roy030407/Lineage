@@ -112,6 +112,16 @@ def test_manual_station_without_sensors_accepted():
     assert station.sensors == []
 
 
+def test_is_inspection_station_defaults_false():
+    station = make_station("ST-01", 0)
+    assert station.is_inspection_station is False
+
+
+def test_is_inspection_station_can_be_set_true():
+    station = make_station("ST-01", 0).model_copy(update={"is_inspection_station": True})
+    assert station.is_inspection_station is True
+
+
 def test_environment_envelope_requires_min_less_than_max():
     with pytest.raises(ValidationError, match="temp_min_c must be < temp_max_c"):
         EnvironmentEnvelope(

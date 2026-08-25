@@ -7,12 +7,22 @@ stations:
   sequence_index: 0
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 60.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        torque_nm: 10.0
+      std:
+        torque_nm: 0.5
+    loaded:
+      mean:
+        torque_nm: 15.0
+      std:
+        torque_nm: 0.8
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - torque_nm
   machine:
     model: Manual Torque Wrench Station
     install_year: 2004
@@ -27,12 +37,22 @@ stations:
   sequence_index: 1
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 62.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        torque_nm: 11.0
+      std:
+        torque_nm: 0.51
+    loaded:
+      mean:
+        torque_nm: 16.0
+      std:
+        torque_nm: 0.81
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - torque_nm
   machine:
     model: Manual Torque Wrench Station
     install_year: 2005
@@ -47,12 +67,22 @@ stations:
   sequence_index: 2
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 64.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        torque_nm: 12.0
+      std:
+        torque_nm: 0.52
+    loaded:
+      mean:
+        torque_nm: 17.0
+      std:
+        torque_nm: 0.8200000000000001
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - torque_nm
   machine:
     model: Manual Torque Wrench Station
     install_year: 2006
@@ -67,12 +97,22 @@ stations:
   sequence_index: 3
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 66.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        torque_nm: 13.0
+      std:
+        torque_nm: 0.53
+    loaded:
+      mean:
+        torque_nm: 18.0
+      std:
+        torque_nm: 0.8300000000000001
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - torque_nm
   machine:
     model: Manual Torque Wrench Station
     install_year: 2007
@@ -101,6 +141,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 68.0
   commissioning_baseline:
     idle:
@@ -153,6 +194,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: mixed
+  is_inspection_station: false
   cycle_time_nominal_s: 60.0
   commissioning_baseline:
     idle:
@@ -205,6 +247,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 62.0
   commissioning_baseline:
     idle:
@@ -257,6 +300,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 64.0
   commissioning_baseline:
     idle:
@@ -309,6 +353,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 66.0
   commissioning_baseline:
     idle:
@@ -361,6 +406,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 68.0
   commissioning_baseline:
     idle:
@@ -413,6 +459,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 60.0
   commissioning_baseline:
     idle:
@@ -465,6 +512,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 62.0
   commissioning_baseline:
     idle:
@@ -517,6 +565,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 64.0
   commissioning_baseline:
     idle:
@@ -569,6 +618,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 66.0
   commissioning_baseline:
     idle:
@@ -621,6 +671,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 68.0
   commissioning_baseline:
     idle:
@@ -654,7 +705,7 @@ stations:
   cost_per_hour: 76.8
   value_add_pct: 2.7
 - id: ST-16
-  name: Body Station 16
+  name: Body Station 16 (Zone Inspection)
   zone: body
   sequence_index: 15
   sensors:
@@ -673,6 +724,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: true
   cycle_time_nominal_s: 60.0
   commissioning_baseline:
     idle:
@@ -725,6 +777,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 90.0
   commissioning_baseline:
     idle:
@@ -763,12 +816,22 @@ stations:
   sequence_index: 17
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 70.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 26.0
+      std:
+        coat_thickness_um: 0.66
+    loaded:
+      mean:
+        coat_thickness_um: 31.0
+      std:
+        coat_thickness_um: 0.9600000000000001
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2012
@@ -783,12 +846,22 @@ stations:
   sequence_index: 18
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 73.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 27.0
+      std:
+        coat_thickness_um: 0.67
+    loaded:
+      mean:
+        coat_thickness_um: 32.0
+      std:
+        coat_thickness_um: 0.9700000000000001
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2013
@@ -803,12 +876,22 @@ stations:
   sequence_index: 19
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 76.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 28.0
+      std:
+        coat_thickness_um: 0.6799999999999999
+    loaded:
+      mean:
+        coat_thickness_um: 33.0
+      std:
+        coat_thickness_um: 0.98
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2014
@@ -823,12 +906,22 @@ stations:
   sequence_index: 20
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 79.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 29.0
+      std:
+        coat_thickness_um: 0.69
+    loaded:
+      mean:
+        coat_thickness_um: 34.0
+      std:
+        coat_thickness_um: 0.99
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2015
@@ -843,12 +936,22 @@ stations:
   sequence_index: 21
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 70.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 30.0
+      std:
+        coat_thickness_um: 0.7
+    loaded:
+      mean:
+        coat_thickness_um: 35.0
+      std:
+        coat_thickness_um: 1.0
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2012
@@ -863,12 +966,22 @@ stations:
   sequence_index: 22
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 73.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 31.0
+      std:
+        coat_thickness_um: 0.71
+    loaded:
+      mean:
+        coat_thickness_um: 36.0
+      std:
+        coat_thickness_um: 1.01
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2013
@@ -883,12 +996,22 @@ stations:
   sequence_index: 23
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 76.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 32.0
+      std:
+        coat_thickness_um: 0.72
+    loaded:
+      mean:
+        coat_thickness_um: 37.0
+      std:
+        coat_thickness_um: 1.02
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2014
@@ -903,12 +1026,22 @@ stations:
   sequence_index: 24
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 79.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        coat_thickness_um: 33.0
+      std:
+        coat_thickness_um: 0.73
+    loaded:
+      mean:
+        coat_thickness_um: 38.0
+      std:
+        coat_thickness_um: 1.03
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - coat_thickness_um
   machine:
     model: Manual Torque Wrench Station
     install_year: 2015
@@ -937,6 +1070,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 70.0
   commissioning_baseline:
     idle:
@@ -970,7 +1104,7 @@ stations:
   cost_per_hour: 88.8
   value_add_pct: 2.7
 - id: ST-26
-  name: Paint Station 26
+  name: Paint Station 26 (Zone Inspection)
   zone: paint
   sequence_index: 26
   sensors:
@@ -989,6 +1123,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: true
   cycle_time_nominal_s: 73.0
   commissioning_baseline:
     idle:
@@ -1041,6 +1176,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 49.0
   commissioning_baseline:
     idle:
@@ -1093,6 +1229,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 51.0
   commissioning_baseline:
     idle:
@@ -1145,6 +1282,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 53.0
   commissioning_baseline:
     idle:
@@ -1197,6 +1335,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 55.0
   commissioning_baseline:
     idle:
@@ -1235,12 +1374,22 @@ stations:
   sequence_index: 31
   sensors: []
   acquisition_mode: manual
+  is_inspection_station: false
   cycle_time_nominal_s: 45.0
-  commissioning_baseline: null
+  commissioning_baseline:
+    idle:
+      mean:
+        torque_nm: 40.0
+      std:
+        torque_nm: 0.8
+    loaded:
+      mean:
+        torque_nm: 45.0
+      std:
+        torque_nm: 1.1
   changeable_params: {}
   readable_params:
-  - visual_pass_fail
-  - operator_notes
+  - torque_nm
   machine:
     model: Manual Torque Wrench Station
     install_year: 2022
@@ -1269,6 +1418,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 47.0
   commissioning_baseline:
     idle:
@@ -1321,6 +1471,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 49.0
   commissioning_baseline:
     idle:
@@ -1373,6 +1524,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: mixed
+  is_inspection_station: false
   cycle_time_nominal_s: 51.0
   commissioning_baseline:
     idle:
@@ -1425,6 +1577,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 53.0
   commissioning_baseline:
     idle:
@@ -1477,6 +1630,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 55.0
   commissioning_baseline:
     idle:
@@ -1529,6 +1683,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 45.0
   commissioning_baseline:
     idle:
@@ -1581,6 +1736,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 47.0
   commissioning_baseline:
     idle:
@@ -1633,6 +1789,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: mixed
+  is_inspection_station: false
   cycle_time_nominal_s: 49.0
   commissioning_baseline:
     idle:
@@ -1685,6 +1842,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 51.0
   commissioning_baseline:
     idle:
@@ -1737,6 +1895,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: false
   cycle_time_nominal_s: 53.0
   commissioning_baseline:
     idle:
@@ -1770,7 +1929,7 @@ stations:
   cost_per_hour: 108.0
   value_add_pct: 1.5
 - id: ST-42
-  name: Final Station 42
+  name: Final Roll Test
   zone: final
   sequence_index: 42
   sensors:
@@ -1789,6 +1948,7 @@ stations:
     last_calibration_date: '2024-01-15'
     accuracy_class: '1.0'
   acquisition_mode: instrumented
+  is_inspection_station: true
   cycle_time_nominal_s: 55.0
   commissioning_baseline:
     idle:
