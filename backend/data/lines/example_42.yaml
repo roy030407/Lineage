@@ -1,0 +1,2028 @@
+plant_name: Meridian Assembly Plant
+site: Meridian, OH, USA
+stations:
+- id: ST-01
+  name: Body Station 1 (Manual)
+  zone: body
+  sequence_index: 0
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 60.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2004
+    last_maintenance_date: '2024-01-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 35.0
+  value_add_pct: 1.5
+- id: ST-02
+  name: Body Station 2 (Manual)
+  zone: body
+  sequence_index: 1
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 62.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2005
+    last_maintenance_date: '2024-02-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 35.5
+  value_add_pct: 1.8
+- id: ST-03
+  name: Body Station 3 (Manual)
+  zone: body
+  sequence_index: 2
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 64.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2006
+    last_maintenance_date: '2024-03-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 36.0
+  value_add_pct: 2.1
+- id: ST-04
+  name: Body Station 4 (Manual)
+  zone: body
+  sequence_index: 3
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 66.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2007
+    last_maintenance_date: '2024-04-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 36.5
+  value_add_pct: 2.4
+- id: ST-05
+  name: Body Station 5
+  zone: body
+  sequence_index: 4
+  sensors:
+  - id: ST-05-SEN-1
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-05-SEN-2
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 68.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-05-SEN-1: 14.0
+        ST-05-SEN-2: 14.0
+      std:
+        ST-05-SEN-1: 0.54
+        ST-05-SEN-2: 0.54
+    loaded:
+      mean:
+        ST-05-SEN-1: 19.0
+        ST-05-SEN-2: 19.0
+      std:
+        ST-05-SEN-1: 0.8400000000000001
+        ST-05-SEN-2: 0.8400000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-05-SEN-1
+  - ST-05-SEN-2
+  machine:
+    model: Comau Smart5 NJ4
+    install_year: 2008
+    last_maintenance_date: '2024-05-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 64.8
+  value_add_pct: 2.7
+- id: ST-06
+  name: Body Station 6
+  zone: body
+  sequence_index: 5
+  sensors:
+  - id: ST-06-SEN-1
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-06-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: mixed
+  cycle_time_nominal_s: 60.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-06-SEN-1: 15.0
+        ST-06-SEN-2: 15.0
+      std:
+        ST-06-SEN-1: 0.55
+        ST-06-SEN-2: 0.55
+    loaded:
+      mean:
+        ST-06-SEN-1: 20.0
+        ST-06-SEN-2: 20.0
+      std:
+        ST-06-SEN-1: 0.8500000000000001
+        ST-06-SEN-2: 0.8500000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-06-SEN-1
+  - ST-06-SEN-2
+  machine:
+    model: Fanuc R-2000iA
+    install_year: 2009
+    last_maintenance_date: '2024-06-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 66.0
+  value_add_pct: 1.5
+- id: ST-07
+  name: Body Station 7
+  zone: body
+  sequence_index: 6
+  sensors:
+  - id: ST-07-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-07-SEN-2
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 62.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-07-SEN-1: 16.0
+        ST-07-SEN-2: 16.0
+      std:
+        ST-07-SEN-1: 0.56
+        ST-07-SEN-2: 0.56
+    loaded:
+      mean:
+        ST-07-SEN-1: 21.0
+        ST-07-SEN-2: 21.0
+      std:
+        ST-07-SEN-1: 0.8600000000000001
+        ST-07-SEN-2: 0.8600000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-07-SEN-1
+  - ST-07-SEN-2
+  machine:
+    model: ABB IRB 6640
+    install_year: 2004
+    last_maintenance_date: '2024-07-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 67.2
+  value_add_pct: 1.8
+- id: ST-08
+  name: Body Station 8
+  zone: body
+  sequence_index: 7
+  sensors:
+  - id: ST-08-SEN-1
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-08-SEN-2
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 64.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-08-SEN-1: 17.0
+        ST-08-SEN-2: 17.0
+      std:
+        ST-08-SEN-1: 0.5700000000000001
+        ST-08-SEN-2: 0.5700000000000001
+    loaded:
+      mean:
+        ST-08-SEN-1: 22.0
+        ST-08-SEN-2: 22.0
+      std:
+        ST-08-SEN-1: 0.8700000000000001
+        ST-08-SEN-2: 0.8700000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-08-SEN-1
+  - ST-08-SEN-2
+  machine:
+    model: Kawasaki BX200
+    install_year: 2005
+    last_maintenance_date: '2024-08-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 68.4
+  value_add_pct: 2.1
+- id: ST-09
+  name: Body Station 9
+  zone: body
+  sequence_index: 8
+  sensors:
+  - id: ST-09-SEN-1
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-09-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 66.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-09-SEN-1: 18.0
+        ST-09-SEN-2: 18.0
+      std:
+        ST-09-SEN-1: 0.58
+        ST-09-SEN-2: 0.58
+    loaded:
+      mean:
+        ST-09-SEN-1: 23.0
+        ST-09-SEN-2: 23.0
+      std:
+        ST-09-SEN-1: 0.88
+        ST-09-SEN-2: 0.88
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-09-SEN-1
+  - ST-09-SEN-2
+  machine:
+    model: Comau Smart5 NJ4
+    install_year: 2006
+    last_maintenance_date: '2024-09-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 69.6
+  value_add_pct: 2.4
+- id: ST-10
+  name: Body Station 10
+  zone: body
+  sequence_index: 9
+  sensors:
+  - id: ST-10-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-10-SEN-2
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 68.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-10-SEN-1: 19.0
+        ST-10-SEN-2: 19.0
+      std:
+        ST-10-SEN-1: 0.59
+        ST-10-SEN-2: 0.59
+    loaded:
+      mean:
+        ST-10-SEN-1: 24.0
+        ST-10-SEN-2: 24.0
+      std:
+        ST-10-SEN-1: 0.89
+        ST-10-SEN-2: 0.89
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-10-SEN-1
+  - ST-10-SEN-2
+  machine:
+    model: Fanuc R-2000iA
+    install_year: 2007
+    last_maintenance_date: '2024-10-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 70.8
+  value_add_pct: 2.7
+- id: ST-11
+  name: Body Station 11
+  zone: body
+  sequence_index: 10
+  sensors:
+  - id: ST-11-SEN-1
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-11-SEN-2
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 60.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-11-SEN-1: 20.0
+        ST-11-SEN-2: 20.0
+      std:
+        ST-11-SEN-1: 0.6
+        ST-11-SEN-2: 0.6
+    loaded:
+      mean:
+        ST-11-SEN-1: 25.0
+        ST-11-SEN-2: 25.0
+      std:
+        ST-11-SEN-1: 0.9
+        ST-11-SEN-2: 0.9
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-11-SEN-1
+  - ST-11-SEN-2
+  machine:
+    model: ABB IRB 6640
+    install_year: 2008
+    last_maintenance_date: '2024-11-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 72.0
+  value_add_pct: 1.5
+- id: ST-12
+  name: Body Station 12
+  zone: body
+  sequence_index: 11
+  sensors:
+  - id: ST-12-SEN-1
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-12-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 62.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-12-SEN-1: 21.0
+        ST-12-SEN-2: 21.0
+      std:
+        ST-12-SEN-1: 0.61
+        ST-12-SEN-2: 0.61
+    loaded:
+      mean:
+        ST-12-SEN-1: 26.0
+        ST-12-SEN-2: 26.0
+      std:
+        ST-12-SEN-1: 0.91
+        ST-12-SEN-2: 0.91
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-12-SEN-1
+  - ST-12-SEN-2
+  machine:
+    model: Kawasaki BX200
+    install_year: 2009
+    last_maintenance_date: '2024-12-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 73.2
+  value_add_pct: 1.8
+- id: ST-13
+  name: Body Station 13
+  zone: body
+  sequence_index: 12
+  sensors:
+  - id: ST-13-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-13-SEN-2
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 64.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-13-SEN-1: 22.0
+        ST-13-SEN-2: 22.0
+      std:
+        ST-13-SEN-1: 0.62
+        ST-13-SEN-2: 0.62
+    loaded:
+      mean:
+        ST-13-SEN-1: 27.0
+        ST-13-SEN-2: 27.0
+      std:
+        ST-13-SEN-1: 0.92
+        ST-13-SEN-2: 0.92
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-13-SEN-1
+  - ST-13-SEN-2
+  machine:
+    model: Comau Smart5 NJ4
+    install_year: 2004
+    last_maintenance_date: '2024-01-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 74.4
+  value_add_pct: 2.1
+- id: ST-14
+  name: Body Station 14
+  zone: body
+  sequence_index: 13
+  sensors:
+  - id: ST-14-SEN-1
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-14-SEN-2
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 66.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-14-SEN-1: 23.0
+        ST-14-SEN-2: 23.0
+      std:
+        ST-14-SEN-1: 0.63
+        ST-14-SEN-2: 0.63
+    loaded:
+      mean:
+        ST-14-SEN-1: 28.0
+        ST-14-SEN-2: 28.0
+      std:
+        ST-14-SEN-1: 0.93
+        ST-14-SEN-2: 0.93
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-14-SEN-1
+  - ST-14-SEN-2
+  machine:
+    model: Fanuc R-2000iA
+    install_year: 2005
+    last_maintenance_date: '2024-02-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 75.6
+  value_add_pct: 2.4
+- id: ST-15
+  name: Body Station 15
+  zone: body
+  sequence_index: 14
+  sensors:
+  - id: ST-15-SEN-1
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-15-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 68.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-15-SEN-1: 24.0
+        ST-15-SEN-2: 24.0
+      std:
+        ST-15-SEN-1: 0.64
+        ST-15-SEN-2: 0.64
+    loaded:
+      mean:
+        ST-15-SEN-1: 29.0
+        ST-15-SEN-2: 29.0
+      std:
+        ST-15-SEN-1: 0.9400000000000001
+        ST-15-SEN-2: 0.9400000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-15-SEN-1
+  - ST-15-SEN-2
+  machine:
+    model: ABB IRB 6640
+    install_year: 2006
+    last_maintenance_date: '2024-03-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 76.8
+  value_add_pct: 2.7
+- id: ST-16
+  name: Body Station 16
+  zone: body
+  sequence_index: 15
+  sensors:
+  - id: ST-16-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-16-SEN-2
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 60.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-16-SEN-1: 25.0
+        ST-16-SEN-2: 25.0
+      std:
+        ST-16-SEN-1: 0.65
+        ST-16-SEN-2: 0.65
+    loaded:
+      mean:
+        ST-16-SEN-1: 30.0
+        ST-16-SEN-2: 30.0
+      std:
+        ST-16-SEN-1: 0.9500000000000001
+        ST-16-SEN-2: 0.9500000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-16-SEN-1
+  - ST-16-SEN-2
+  machine:
+    model: Kawasaki BX200
+    install_year: 2007
+    last_maintenance_date: '2024-04-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 78.0
+  value_add_pct: 1.5
+- id: ST-17
+  name: Paint Station 17 (Manual)
+  zone: paint
+  sequence_index: 16
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 70.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2012
+    last_maintenance_date: '2024-05-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 43.0
+  value_add_pct: 1.8
+- id: ST-18
+  name: Paint Station 18 (Manual)
+  zone: paint
+  sequence_index: 17
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 73.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2013
+    last_maintenance_date: '2024-06-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 43.5
+  value_add_pct: 2.1
+- id: ST-19
+  name: Paint Station 19 (Manual)
+  zone: paint
+  sequence_index: 18
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 76.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2014
+    last_maintenance_date: '2024-07-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 44.0
+  value_add_pct: 2.4
+- id: ST-20
+  name: Paint Station 20 (Manual)
+  zone: paint
+  sequence_index: 19
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 79.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2015
+    last_maintenance_date: '2024-08-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 44.5
+  value_add_pct: 2.7
+- id: ST-21
+  name: Paint Station 21 (Manual)
+  zone: paint
+  sequence_index: 20
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 70.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2012
+    last_maintenance_date: '2024-09-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 45.0
+  value_add_pct: 1.5
+- id: ST-22
+  name: Paint Station 22 (Manual)
+  zone: paint
+  sequence_index: 21
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 73.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2013
+    last_maintenance_date: '2024-10-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 45.5
+  value_add_pct: 1.8
+- id: ST-23
+  name: Paint Station 23 (Manual)
+  zone: paint
+  sequence_index: 22
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 76.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2014
+    last_maintenance_date: '2024-11-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 46.0
+  value_add_pct: 2.1
+- id: ST-24
+  name: Paint Station 24 (Manual)
+  zone: paint
+  sequence_index: 23
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 79.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2015
+    last_maintenance_date: '2024-12-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 46.5
+  value_add_pct: 2.4
+- id: ST-25
+  name: Paint Station 25
+  zone: paint
+  sequence_index: 24
+  sensors:
+  - id: ST-25-SEN-1
+    kind: thermal
+    unit: C
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-25-SEN-2
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 70.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-25-SEN-1: 34.0
+        ST-25-SEN-2: 34.0
+      std:
+        ST-25-SEN-1: 0.74
+        ST-25-SEN-2: 0.74
+    loaded:
+      mean:
+        ST-25-SEN-1: 39.0
+        ST-25-SEN-2: 39.0
+      std:
+        ST-25-SEN-1: 1.04
+        ST-25-SEN-2: 1.04
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-25-SEN-1
+  - ST-25-SEN-2
+  machine:
+    model: Durr EcoRP L133
+    install_year: 2012
+    last_maintenance_date: '2024-01-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 88.8
+  value_add_pct: 2.7
+- id: ST-26
+  name: Paint Station 26
+  zone: paint
+  sequence_index: 25
+  sensors:
+  - id: ST-26-SEN-1
+    kind: vibration
+    unit: mm/s
+    sample_rate_hz: 1000.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-26-SEN-2
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 73.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-26-SEN-1: 35.0
+        ST-26-SEN-2: 35.0
+      std:
+        ST-26-SEN-1: 0.75
+        ST-26-SEN-2: 0.75
+    loaded:
+      mean:
+        ST-26-SEN-1: 40.0
+        ST-26-SEN-2: 40.0
+      std:
+        ST-26-SEN-1: 1.05
+        ST-26-SEN-2: 1.05
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-26-SEN-1
+  - ST-26-SEN-2
+  machine:
+    model: Fanuc P-350
+    install_year: 2013
+    last_maintenance_date: '2024-02-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 90.0
+  value_add_pct: 1.5
+- id: ST-27
+  name: Final Station 27
+  zone: final
+  sequence_index: 26
+  sensors:
+  - id: ST-27-SEN-1
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-27-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 49.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-27-SEN-1: 36.0
+        ST-27-SEN-2: 36.0
+      std:
+        ST-27-SEN-1: 0.76
+        ST-27-SEN-2: 0.76
+    loaded:
+      mean:
+        ST-27-SEN-1: 41.0
+        ST-27-SEN-2: 41.0
+      std:
+        ST-27-SEN-1: 1.06
+        ST-27-SEN-2: 1.06
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-27-SEN-1
+  - ST-27-SEN-2
+  machine:
+    model: Fanuc CR-15iA
+    install_year: 2018
+    last_maintenance_date: '2024-03-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 91.2
+  value_add_pct: 1.8
+- id: ST-28
+  name: Final Station 28
+  zone: final
+  sequence_index: 27
+  sensors:
+  - id: ST-28-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-28-SEN-2
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 51.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-28-SEN-1: 37.0
+        ST-28-SEN-2: 37.0
+      std:
+        ST-28-SEN-1: 0.77
+        ST-28-SEN-2: 0.77
+    loaded:
+      mean:
+        ST-28-SEN-1: 42.0
+        ST-28-SEN-2: 42.0
+      std:
+        ST-28-SEN-1: 1.07
+        ST-28-SEN-2: 1.07
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-28-SEN-1
+  - ST-28-SEN-2
+  machine:
+    model: KUKA KR16 R2010
+    install_year: 2019
+    last_maintenance_date: '2024-04-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 92.4
+  value_add_pct: 2.1
+- id: ST-29
+  name: Final Station 29
+  zone: final
+  sequence_index: 28
+  sensors:
+  - id: ST-29-SEN-1
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-29-SEN-2
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 53.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-29-SEN-1: 38.0
+        ST-29-SEN-2: 38.0
+      std:
+        ST-29-SEN-1: 0.78
+        ST-29-SEN-2: 0.78
+    loaded:
+      mean:
+        ST-29-SEN-1: 43.0
+        ST-29-SEN-2: 43.0
+      std:
+        ST-29-SEN-1: 1.08
+        ST-29-SEN-2: 1.08
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-29-SEN-1
+  - ST-29-SEN-2
+  machine:
+    model: Atlas Copco Tensor ST
+    install_year: 2020
+    last_maintenance_date: '2024-05-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 93.6
+  value_add_pct: 2.4
+- id: ST-30
+  name: Final Station 30
+  zone: final
+  sequence_index: 29
+  sensors:
+  - id: ST-30-SEN-1
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-30-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 55.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-30-SEN-1: 39.0
+        ST-30-SEN-2: 39.0
+      std:
+        ST-30-SEN-1: 0.79
+        ST-30-SEN-2: 0.79
+    loaded:
+      mean:
+        ST-30-SEN-1: 44.0
+        ST-30-SEN-2: 44.0
+      std:
+        ST-30-SEN-1: 1.09
+        ST-30-SEN-2: 1.09
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-30-SEN-1
+  - ST-30-SEN-2
+  machine:
+    model: Fanuc CR-15iA
+    install_year: 2021
+    last_maintenance_date: '2024-06-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 94.8
+  value_add_pct: 2.7
+- id: ST-31
+  name: Final Station 31 (Manual)
+  zone: final
+  sequence_index: 30
+  sensors: []
+  acquisition_mode: manual
+  cycle_time_nominal_s: 45.0
+  commissioning_baseline: null
+  changeable_params: {}
+  readable_params:
+  - visual_pass_fail
+  - operator_notes
+  machine:
+    model: Manual Torque Wrench Station
+    install_year: 2022
+    last_maintenance_date: '2024-07-10'
+    maintenance_interval_days: 180
+    wear_curve_shape: linear
+  cost_per_hour: 50.0
+  value_add_pct: 1.5
+- id: ST-32
+  name: Final Station 32
+  zone: final
+  sequence_index: 31
+  sensors:
+  - id: ST-32-SEN-1
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-32-SEN-2
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 47.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-32-SEN-1: 41.0
+        ST-32-SEN-2: 41.0
+      std:
+        ST-32-SEN-1: 0.81
+        ST-32-SEN-2: 0.81
+    loaded:
+      mean:
+        ST-32-SEN-1: 46.0
+        ST-32-SEN-2: 46.0
+      std:
+        ST-32-SEN-1: 1.11
+        ST-32-SEN-2: 1.11
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-32-SEN-1
+  - ST-32-SEN-2
+  machine:
+    model: Atlas Copco Tensor ST
+    install_year: 2018
+    last_maintenance_date: '2024-08-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 97.19999999999999
+  value_add_pct: 1.8
+- id: ST-33
+  name: Final Station 33
+  zone: final
+  sequence_index: 32
+  sensors:
+  - id: ST-33-SEN-1
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-33-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 49.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-33-SEN-1: 42.0
+        ST-33-SEN-2: 42.0
+      std:
+        ST-33-SEN-1: 0.8200000000000001
+        ST-33-SEN-2: 0.8200000000000001
+    loaded:
+      mean:
+        ST-33-SEN-1: 47.0
+        ST-33-SEN-2: 47.0
+      std:
+        ST-33-SEN-1: 1.12
+        ST-33-SEN-2: 1.12
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-33-SEN-1
+  - ST-33-SEN-2
+  machine:
+    model: Fanuc CR-15iA
+    install_year: 2019
+    last_maintenance_date: '2024-09-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 98.4
+  value_add_pct: 2.1
+- id: ST-34
+  name: Final Station 34
+  zone: final
+  sequence_index: 33
+  sensors:
+  - id: ST-34-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-34-SEN-2
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: mixed
+  cycle_time_nominal_s: 51.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-34-SEN-1: 43.0
+        ST-34-SEN-2: 43.0
+      std:
+        ST-34-SEN-1: 0.8300000000000001
+        ST-34-SEN-2: 0.8300000000000001
+    loaded:
+      mean:
+        ST-34-SEN-1: 48.0
+        ST-34-SEN-2: 48.0
+      std:
+        ST-34-SEN-1: 1.1300000000000001
+        ST-34-SEN-2: 1.1300000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-34-SEN-1
+  - ST-34-SEN-2
+  machine:
+    model: KUKA KR16 R2010
+    install_year: 2020
+    last_maintenance_date: '2024-10-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 99.6
+  value_add_pct: 2.4
+- id: ST-35
+  name: Final Station 35
+  zone: final
+  sequence_index: 34
+  sensors:
+  - id: ST-35-SEN-1
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-35-SEN-2
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 53.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-35-SEN-1: 44.0
+        ST-35-SEN-2: 44.0
+      std:
+        ST-35-SEN-1: 0.8400000000000001
+        ST-35-SEN-2: 0.8400000000000001
+    loaded:
+      mean:
+        ST-35-SEN-1: 49.0
+        ST-35-SEN-2: 49.0
+      std:
+        ST-35-SEN-1: 1.1400000000000001
+        ST-35-SEN-2: 1.1400000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-35-SEN-1
+  - ST-35-SEN-2
+  machine:
+    model: Atlas Copco Tensor ST
+    install_year: 2021
+    last_maintenance_date: '2024-11-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 100.8
+  value_add_pct: 2.7
+- id: ST-36
+  name: Final Station 36
+  zone: final
+  sequence_index: 35
+  sensors:
+  - id: ST-36-SEN-1
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-36-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 55.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-36-SEN-1: 45.0
+        ST-36-SEN-2: 45.0
+      std:
+        ST-36-SEN-1: 0.8500000000000001
+        ST-36-SEN-2: 0.8500000000000001
+    loaded:
+      mean:
+        ST-36-SEN-1: 50.0
+        ST-36-SEN-2: 50.0
+      std:
+        ST-36-SEN-1: 1.1500000000000001
+        ST-36-SEN-2: 1.1500000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-36-SEN-1
+  - ST-36-SEN-2
+  machine:
+    model: Fanuc CR-15iA
+    install_year: 2022
+    last_maintenance_date: '2024-12-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 102.0
+  value_add_pct: 1.5
+- id: ST-37
+  name: Final Station 37
+  zone: final
+  sequence_index: 36
+  sensors:
+  - id: ST-37-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-37-SEN-2
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 45.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-37-SEN-1: 46.0
+        ST-37-SEN-2: 46.0
+      std:
+        ST-37-SEN-1: 0.86
+        ST-37-SEN-2: 0.86
+    loaded:
+      mean:
+        ST-37-SEN-1: 51.0
+        ST-37-SEN-2: 51.0
+      std:
+        ST-37-SEN-1: 1.1600000000000001
+        ST-37-SEN-2: 1.1600000000000001
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-37-SEN-1
+  - ST-37-SEN-2
+  machine:
+    model: KUKA KR16 R2010
+    install_year: 2018
+    last_maintenance_date: '2024-01-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 103.19999999999999
+  value_add_pct: 1.8
+- id: ST-38
+  name: Final Station 38
+  zone: final
+  sequence_index: 37
+  sensors:
+  - id: ST-38-SEN-1
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-38-SEN-2
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 47.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-38-SEN-1: 47.0
+        ST-38-SEN-2: 47.0
+      std:
+        ST-38-SEN-1: 0.87
+        ST-38-SEN-2: 0.87
+    loaded:
+      mean:
+        ST-38-SEN-1: 52.0
+        ST-38-SEN-2: 52.0
+      std:
+        ST-38-SEN-1: 1.17
+        ST-38-SEN-2: 1.17
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-38-SEN-1
+  - ST-38-SEN-2
+  machine:
+    model: Atlas Copco Tensor ST
+    install_year: 2019
+    last_maintenance_date: '2024-02-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 104.4
+  value_add_pct: 2.1
+- id: ST-39
+  name: Final Station 39
+  zone: final
+  sequence_index: 38
+  sensors:
+  - id: ST-39-SEN-1
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-39-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: mixed
+  cycle_time_nominal_s: 49.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-39-SEN-1: 48.0
+        ST-39-SEN-2: 48.0
+      std:
+        ST-39-SEN-1: 0.88
+        ST-39-SEN-2: 0.88
+    loaded:
+      mean:
+        ST-39-SEN-1: 53.0
+        ST-39-SEN-2: 53.0
+      std:
+        ST-39-SEN-1: 1.1800000000000002
+        ST-39-SEN-2: 1.1800000000000002
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-39-SEN-1
+  - ST-39-SEN-2
+  machine:
+    model: Fanuc CR-15iA
+    install_year: 2020
+    last_maintenance_date: '2024-03-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 105.6
+  value_add_pct: 2.4
+- id: ST-40
+  name: Final Station 40
+  zone: final
+  sequence_index: 39
+  sensors:
+  - id: ST-40-SEN-1
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-40-SEN-2
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 51.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-40-SEN-1: 49.0
+        ST-40-SEN-2: 49.0
+      std:
+        ST-40-SEN-1: 0.89
+        ST-40-SEN-2: 0.89
+    loaded:
+      mean:
+        ST-40-SEN-1: 54.0
+        ST-40-SEN-2: 54.0
+      std:
+        ST-40-SEN-1: 1.19
+        ST-40-SEN-2: 1.19
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-40-SEN-1
+  - ST-40-SEN-2
+  machine:
+    model: KUKA KR16 R2010
+    install_year: 2021
+    last_maintenance_date: '2024-04-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 106.8
+  value_add_pct: 2.7
+- id: ST-41
+  name: Final Station 41
+  zone: final
+  sequence_index: 40
+  sensors:
+  - id: ST-41-SEN-1
+    kind: rpm
+    unit: rpm
+    sample_rate_hz: 100.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-41-SEN-2
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 53.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-41-SEN-1: 50.0
+        ST-41-SEN-2: 50.0
+      std:
+        ST-41-SEN-1: 0.9
+        ST-41-SEN-2: 0.9
+    loaded:
+      mean:
+        ST-41-SEN-1: 55.0
+        ST-41-SEN-2: 55.0
+      std:
+        ST-41-SEN-1: 1.2000000000000002
+        ST-41-SEN-2: 1.2000000000000002
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-41-SEN-1
+  - ST-41-SEN-2
+  machine:
+    model: Atlas Copco Tensor ST
+    install_year: 2022
+    last_maintenance_date: '2024-05-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 108.0
+  value_add_pct: 1.5
+- id: ST-42
+  name: Final Station 42
+  zone: final
+  sequence_index: 41
+  sensors:
+  - id: ST-42-SEN-1
+    kind: cycle_time
+    unit: s
+    sample_rate_hz: 1.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '0.5'
+  - id: ST-42-SEN-2
+    kind: torque
+    unit: N.m
+    sample_rate_hz: 50.0
+    install_date: '2018-03-01'
+    last_calibration_date: '2024-01-15'
+    accuracy_class: '1.0'
+  acquisition_mode: instrumented
+  cycle_time_nominal_s: 55.0
+  commissioning_baseline:
+    idle:
+      mean:
+        ST-42-SEN-1: 51.0
+        ST-42-SEN-2: 51.0
+      std:
+        ST-42-SEN-1: 0.91
+        ST-42-SEN-2: 0.91
+    loaded:
+      mean:
+        ST-42-SEN-1: 56.0
+        ST-42-SEN-2: 56.0
+      std:
+        ST-42-SEN-1: 1.21
+        ST-42-SEN-2: 1.21
+  changeable_params:
+    line_speed_pct:
+      min: 80.0
+      max: 110.0
+      step: 1.0
+  readable_params:
+  - ST-42-SEN-1
+  - ST-42-SEN-2
+  machine:
+    model: Fanuc CR-15iA
+    install_year: 2018
+    last_maintenance_date: '2024-06-10'
+    maintenance_interval_days: 90
+    wear_curve_shape: bathtub
+  cost_per_hour: 109.19999999999999
+  value_add_pct: 1.8
+layout:
+  coordinates:
+  - station_id: ST-01
+    x_m: 0.0
+    y_m: 0.0
+  - station_id: ST-02
+    x_m: 8.0
+    y_m: 0.0
+  - station_id: ST-03
+    x_m: 16.0
+    y_m: 0.0
+  - station_id: ST-04
+    x_m: 24.0
+    y_m: 0.0
+  - station_id: ST-05
+    x_m: 32.0
+    y_m: 0.0
+  - station_id: ST-06
+    x_m: 40.0
+    y_m: 0.0
+  - station_id: ST-07
+    x_m: 48.0
+    y_m: 0.0
+  - station_id: ST-08
+    x_m: 56.0
+    y_m: 0.0
+  - station_id: ST-09
+    x_m: 64.0
+    y_m: 0.0
+  - station_id: ST-10
+    x_m: 72.0
+    y_m: 0.0
+  - station_id: ST-11
+    x_m: 80.0
+    y_m: 0.0
+  - station_id: ST-12
+    x_m: 88.0
+    y_m: 0.0
+  - station_id: ST-13
+    x_m: 96.0
+    y_m: 0.0
+  - station_id: ST-14
+    x_m: 104.0
+    y_m: 0.0
+  - station_id: ST-15
+    x_m: 112.0
+    y_m: 0.0
+  - station_id: ST-16
+    x_m: 120.0
+    y_m: 0.0
+  - station_id: ST-17
+    x_m: 128.0
+    y_m: 0.0
+  - station_id: ST-18
+    x_m: 136.0
+    y_m: 0.0
+  - station_id: ST-19
+    x_m: 144.0
+    y_m: 0.0
+  - station_id: ST-20
+    x_m: 152.0
+    y_m: 0.0
+  - station_id: ST-21
+    x_m: 160.0
+    y_m: 0.0
+  - station_id: ST-22
+    x_m: 168.0
+    y_m: 0.0
+  - station_id: ST-23
+    x_m: 176.0
+    y_m: 0.0
+  - station_id: ST-24
+    x_m: 184.0
+    y_m: 0.0
+  - station_id: ST-25
+    x_m: 192.0
+    y_m: 0.0
+  - station_id: ST-26
+    x_m: 200.0
+    y_m: 0.0
+  - station_id: ST-27
+    x_m: 208.0
+    y_m: 0.0
+  - station_id: ST-28
+    x_m: 216.0
+    y_m: 0.0
+  - station_id: ST-29
+    x_m: 224.0
+    y_m: 0.0
+  - station_id: ST-30
+    x_m: 232.0
+    y_m: 0.0
+  - station_id: ST-31
+    x_m: 240.0
+    y_m: 0.0
+  - station_id: ST-32
+    x_m: 248.0
+    y_m: 0.0
+  - station_id: ST-33
+    x_m: 256.0
+    y_m: 0.0
+  - station_id: ST-34
+    x_m: 264.0
+    y_m: 0.0
+  - station_id: ST-35
+    x_m: 272.0
+    y_m: 0.0
+  - station_id: ST-36
+    x_m: 280.0
+    y_m: 0.0
+  - station_id: ST-37
+    x_m: 288.0
+    y_m: 0.0
+  - station_id: ST-38
+    x_m: 296.0
+    y_m: 0.0
+  - station_id: ST-39
+    x_m: 304.0
+    y_m: 0.0
+  - station_id: ST-40
+    x_m: 312.0
+    y_m: 0.0
+  - station_id: ST-41
+    x_m: 320.0
+    y_m: 0.0
+  - station_id: ST-42
+    x_m: 328.0
+    y_m: 0.0
+  segments:
+  - from_station_id: ST-01
+    to_station_id: ST-02
+    distance_m: 8.0
+  - from_station_id: ST-02
+    to_station_id: ST-03
+    distance_m: 8.0
+  - from_station_id: ST-03
+    to_station_id: ST-04
+    distance_m: 8.0
+  - from_station_id: ST-04
+    to_station_id: ST-05
+    distance_m: 8.0
+  - from_station_id: ST-05
+    to_station_id: ST-06
+    distance_m: 8.0
+  - from_station_id: ST-06
+    to_station_id: ST-07
+    distance_m: 8.0
+  - from_station_id: ST-07
+    to_station_id: ST-08
+    distance_m: 8.0
+  - from_station_id: ST-08
+    to_station_id: ST-09
+    distance_m: 8.0
+  - from_station_id: ST-09
+    to_station_id: ST-10
+    distance_m: 8.0
+  - from_station_id: ST-10
+    to_station_id: ST-11
+    distance_m: 8.0
+  - from_station_id: ST-11
+    to_station_id: ST-12
+    distance_m: 8.0
+  - from_station_id: ST-12
+    to_station_id: ST-13
+    distance_m: 8.0
+  - from_station_id: ST-13
+    to_station_id: ST-14
+    distance_m: 8.0
+  - from_station_id: ST-14
+    to_station_id: ST-15
+    distance_m: 8.0
+  - from_station_id: ST-15
+    to_station_id: ST-16
+    distance_m: 8.0
+  - from_station_id: ST-16
+    to_station_id: ST-17
+    distance_m: 8.0
+  - from_station_id: ST-17
+    to_station_id: ST-18
+    distance_m: 8.0
+  - from_station_id: ST-18
+    to_station_id: ST-19
+    distance_m: 8.0
+  - from_station_id: ST-19
+    to_station_id: ST-20
+    distance_m: 8.0
+  - from_station_id: ST-20
+    to_station_id: ST-21
+    distance_m: 8.0
+  - from_station_id: ST-21
+    to_station_id: ST-22
+    distance_m: 8.0
+  - from_station_id: ST-22
+    to_station_id: ST-23
+    distance_m: 8.0
+  - from_station_id: ST-23
+    to_station_id: ST-24
+    distance_m: 8.0
+  - from_station_id: ST-24
+    to_station_id: ST-25
+    distance_m: 8.0
+  - from_station_id: ST-25
+    to_station_id: ST-26
+    distance_m: 8.0
+  - from_station_id: ST-26
+    to_station_id: ST-27
+    distance_m: 8.0
+  - from_station_id: ST-27
+    to_station_id: ST-28
+    distance_m: 8.0
+  - from_station_id: ST-28
+    to_station_id: ST-29
+    distance_m: 8.0
+  - from_station_id: ST-29
+    to_station_id: ST-30
+    distance_m: 8.0
+  - from_station_id: ST-30
+    to_station_id: ST-31
+    distance_m: 8.0
+  - from_station_id: ST-31
+    to_station_id: ST-32
+    distance_m: 8.0
+  - from_station_id: ST-32
+    to_station_id: ST-33
+    distance_m: 8.0
+  - from_station_id: ST-33
+    to_station_id: ST-34
+    distance_m: 8.0
+  - from_station_id: ST-34
+    to_station_id: ST-35
+    distance_m: 8.0
+  - from_station_id: ST-35
+    to_station_id: ST-36
+    distance_m: 8.0
+  - from_station_id: ST-36
+    to_station_id: ST-37
+    distance_m: 8.0
+  - from_station_id: ST-37
+    to_station_id: ST-38
+    distance_m: 8.0
+  - from_station_id: ST-38
+    to_station_id: ST-39
+    distance_m: 8.0
+  - from_station_id: ST-39
+    to_station_id: ST-40
+    distance_m: 8.0
+  - from_station_id: ST-40
+    to_station_id: ST-41
+    distance_m: 8.0
+  - from_station_id: ST-41
+    to_station_id: ST-42
+    distance_m: 8.0
+environment_envelope:
+  temp_min_c: 18.0
+  temp_max_c: 26.0
+  humidity_min_pct: 30.0
+  humidity_max_pct: 60.0
