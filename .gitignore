@@ -10,8 +10,8 @@ __pycache__/
 node_modules/
 dist/
 
-# Runtime-generated data (not the curated example fixtures under backend/data/)
-/data/
+# Runtime-generated run output (not the curated example fixtures under backend/data/lines/)
+backend/data/runs/
 
 # OS/editor
 .DS_Store
