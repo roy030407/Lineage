@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: lineage-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # $PORT is injected by Render at runtime -- never hardcode a port here.
+    # --proxy-headers/--forwarded-allow-ips: Render terminates TLS in front
+    # of the app and proxies plain HTTP to it, so the app never sees the
+    # request directly; this is the standard, low-risk uvicorn setting for
+    # running behind a reverse proxy (nothing in this app currently inspects
+    # scheme/client-IP, but this is correct if that ever changes).
+    startCommand: >-
+      uvicorn lineage.api.app:app
+      --host 0.0.0.0
+      --port $PORT
+      --proxy-headers
+      --forwarded-allow-ips="*"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: ALLOWED_ORIGIN
+        # sync: false -- Render will prompt for this in the dashboard rather
+        # than storing a value in this file. Set it to the real Vercel
+        # deployment URL once that exists, e.g. https://lineage.vercel.app
+        # (comma-separate for more than one, e.g. a preview deployment
+        # alongside production). The app falls back to
+        # http://localhost:5173 (local dev only) if this is ever unset.
+        sync: false
