@@ -5,12 +5,14 @@ import type {
   CarTwin,
   FloorSupervisorView,
   LeadershipView,
+  LedgerMetrics,
   LineSpec,
   OperatorView,
   PlantManagerView,
   ReplayControlRequest,
   RunSummary,
   StationSpec,
+  TrendState,
 } from "./types";
 
 async function getJson<T>(path: string): Promise<T> {
@@ -104,6 +106,28 @@ export function moveBuilderStation(
 
 export function saveBuilderDraft(filename: string): Promise<{ ok: boolean; filename: string }> {
   return postJson<{ ok: boolean; filename: string }>("/api/builder/save", { filename });
+}
+
+export function getPredictMetrics(): Promise<LedgerMetrics> {
+  return getJson<LedgerMetrics>("/api/predict/metrics");
+}
+
+export function getPredictMetricsByStation(): Promise<Record<string, LedgerMetrics>> {
+  return getJson<Record<string, LedgerMetrics>>("/api/predict/metrics/by_station");
+}
+
+export function getPredictTrend(
+  stationId: string,
+  interventionAt: string,
+  windowSize = 10,
+): Promise<TrendState | null> {
+  const params = new URLSearchParams({
+    intervention_at: interventionAt,
+    window_size: String(windowSize),
+  });
+  return getJson<TrendState | null>(
+    `/api/predict/trend/${encodeURIComponent(stationId)}?${params.toString()}`,
+  );
 }
 
 export async function replayControl(request: ReplayControlRequest): Promise<void> {

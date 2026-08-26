@@ -12,6 +12,7 @@ const ROLES: { value: Role; label: string }[] = [
   { value: "floor_supervisor", label: "Floor Supervisor" },
   { value: "plant_manager", label: "Plant Manager" },
   { value: "leadership", label: "Leadership" },
+  { value: "prediction_ledger", label: "Prediction Ledger" },
 ];
 
 export function TopBar() {

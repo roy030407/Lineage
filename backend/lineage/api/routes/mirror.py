@@ -53,6 +53,16 @@ def replay_control(req: ReplayControlRequest, state: AppState = Depends(get_app_
         # Built once here, not per car-history request -- GET /api/cars/{car_id}
         # only ever reads from this cache.
         state.genealogy_store = from_generated_run(state.line, run_dir, run_config)
+
+        # The prediction ledger is NOT built here -- it's expensive (~105s
+        # observed for a 400-car run, assessing every car against every
+        # inspection station it reached) and 'load' is expected to stay
+        # fast. api/routes/predict.py builds and caches it lazily on first
+        # request instead. Just record where this run lives, and drop any
+        # ledger cached for a previously-loaded run.
+        state.current_run_dir = run_dir
+        state.prediction_ledger = None
+
         return {"ok": True}
 
     if state.engine is None:

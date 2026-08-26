@@ -14,6 +14,7 @@ import { FloorSupervisorView } from "./views/FloorSupervisorView";
 import { LeadershipView } from "./views/LeadershipView";
 import { OperatorView } from "./views/OperatorView";
 import { PlantManagerView } from "./views/PlantManagerView";
+import { PredictionLedgerView } from "./views/PredictionLedgerView";
 
 export default function App() {
   const loadLineSpec = useLineageStore((s) => s.loadLineSpec);
@@ -45,6 +46,7 @@ export default function App() {
             {role === "floor_supervisor" && <FloorSupervisorView />}
             {role === "plant_manager" && <PlantManagerView />}
             {role === "leadership" && <LeadershipView />}
+            {role === "prediction_ledger" && <PredictionLedgerView />}
           </>
         )}
       </div>

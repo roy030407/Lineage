@@ -172,7 +172,13 @@ export interface ReplayControlRequest {
 
 // --- role views -------------------------------------------------------------
 
-export type Role = "mirror" | "operator" | "floor_supervisor" | "plant_manager" | "leadership";
+export type Role =
+  | "mirror"
+  | "operator"
+  | "floor_supervisor"
+  | "plant_manager"
+  | "leadership"
+  | "prediction_ledger";
 
 export interface OperatorView {
   station_id: string;
@@ -201,4 +207,21 @@ export interface PlantManagerView {
 
 export interface LeadershipView {
   summary: LineSummary;
+}
+
+// --- prediction ledger --------------------------------------------------
+
+export type PredictionOutcome = "pending" | "materialized" | "not_materialized";
+export type TrendState = "improving" | "stagnant" | "worsening";
+
+export interface LedgerMetrics {
+  sample_size: number;
+  true_positive: number;
+  false_positive: number;
+  true_negative: number;
+  false_negative: number;
+  precision: number | null;
+  recall: number | null;
+  false_alarm_rate: number | null;
+  trust_score: number | null;
 }

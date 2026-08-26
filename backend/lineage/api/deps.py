@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from lineage.config.specs import LineSpec
+from lineage.predict.ledger import PredictionLedger
 from lineage.replay.engine import ReplayEngine
 from lineage.replay.store import SnapshotHistory
 from lineage.replay.ws import ConnectionManager
@@ -12,6 +13,8 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 LINES_ROOT = BACKEND_DIR / "data" / "lines"
 DEFAULT_LINE_PATH = LINES_ROOT / "example_42.yaml"
 RUNS_ROOT = BACKEND_DIR / "data" / "runs"
+MODELS_ROOT = BACKEND_DIR / "data" / "models"
+DEFAULT_RISK_MODEL_DIR = MODELS_ROOT / "risk_v1"
 
 
 class AppState:
@@ -20,10 +23,12 @@ class AppState:
         line: LineSpec | None = None,
         runs_root: Path = RUNS_ROOT,
         lines_root: Path = LINES_ROOT,
+        models_root: Path = MODELS_ROOT,
     ) -> None:
         self.line: LineSpec | None = line
         self.runs_root = runs_root
         self.lines_root = lines_root
+        self.models_root = models_root
         self.engine: ReplayEngine | None = None
         self.connection_manager = ConnectionManager()
         self.snapshot_history = SnapshotHistory()
@@ -35,6 +40,21 @@ class AppState:
         """A LineSpec being edited by the builder, independent of `line` --
         editing a draft never disturbs a Mirror session using the loaded
         line for replay. See api/routes/builder.py."""
+        self.current_run_dir: Path | None = None
+        """Set at 'load' time so the prediction ledger can be built lazily
+        (see prediction_ledger below) without mirror.py's load action having
+        to know anything about predict/."""
+        self.prediction_ledger: PredictionLedger | None = None
+        """Built lazily on first request to /api/predict/*, then cached here
+        -- NOT built eagerly at 'load' time. Assessing every car in a run
+        against every inspection station it reached is real, non-trivial
+        work (observed: ~105s for a 400-car run), and 'load' is expected to
+        stay fast, matching genealogy_store's much cheaper build. Reset to
+        None on every new 'load' so a stale run's ledger is never served.
+        Also None whenever no trained risk model is found -- data/models/ is
+        gitignored (a locally-trained artifact, not committed), so a fresh
+        clone or CI environment legitimately has none. See
+        api/routes/predict.py."""
 
 
 _state: AppState | None = None
