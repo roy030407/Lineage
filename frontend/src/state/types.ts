@@ -169,3 +169,36 @@ export interface ReplayControlRequest {
   timestamp?: string;
   speed_multiplier?: number;
 }
+
+// --- role views -------------------------------------------------------------
+
+export type Role = "mirror" | "operator" | "floor_supervisor" | "plant_manager" | "leadership";
+
+export interface OperatorView {
+  station_id: string;
+  station_name: string;
+  sensor_health: SensorHealth;
+  machine_health: MachineHealth;
+  latest_readings: LatestReading[];
+  commissioning_baseline: CommissioningBaseline | null;
+}
+
+export interface LineSummary {
+  occupied_station_count: number;
+  alarm_station_count: number;
+  average_upstream_buffer_depth: number;
+}
+
+export interface FloorSupervisorView {
+  line_state: LineState;
+  active_alert_station_ids: string[];
+}
+
+export interface PlantManagerView {
+  line_state: LineState;
+  summary: LineSummary;
+}
+
+export interface LeadershipView {
+  summary: LineSummary;
+}

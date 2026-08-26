@@ -1,7 +1,16 @@
 // REST client wrapper for the line/replay/car endpoints. Relative paths only
 // -- the vite dev server proxies /api to the backend, no CORS handling needed.
 
-import type { CarTwin, LineSpec, ReplayControlRequest, RunSummary } from "./types";
+import type {
+  CarTwin,
+  FloorSupervisorView,
+  LeadershipView,
+  LineSpec,
+  OperatorView,
+  PlantManagerView,
+  ReplayControlRequest,
+  RunSummary,
+} from "./types";
 
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path);
@@ -21,6 +30,22 @@ export function listRuns(): Promise<RunSummary[]> {
 
 export function getCar(carId: string): Promise<CarTwin> {
   return getJson<CarTwin>(`/api/cars/${encodeURIComponent(carId)}`);
+}
+
+export function getOperatorView(stationId: string): Promise<OperatorView> {
+  return getJson<OperatorView>(`/api/view/operator?station_id=${encodeURIComponent(stationId)}`);
+}
+
+export function getFloorSupervisorView(): Promise<FloorSupervisorView> {
+  return getJson<FloorSupervisorView>("/api/view/floor_supervisor");
+}
+
+export function getPlantManagerView(): Promise<PlantManagerView> {
+  return getJson<PlantManagerView>("/api/view/plant_manager");
+}
+
+export function getLeadershipView(): Promise<LeadershipView> {
+  return getJson<LeadershipView>("/api/view/leadership");
 }
 
 export async function replayControl(request: ReplayControlRequest): Promise<void> {

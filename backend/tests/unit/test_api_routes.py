@@ -156,3 +156,70 @@ def test_get_unknown_car_returns_404(tmp_path):
         client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
         response = client.get("/api/cars/CAR-99999")
     assert response.status_code == 404
+
+
+def test_operator_view_scoped_to_one_station(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        response = client.get("/api/view/operator", params={"station_id": "ST-01"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["station_id"] == "ST-01"
+    assert body["station_name"] == "Only Station"
+    assert "line_state" not in body
+    assert "stations" not in body
+
+
+def test_operator_view_unknown_station_returns_404(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        response = client.get("/api/view/operator", params={"station_id": "ST-99"})
+    assert response.status_code == 404
+
+
+def test_floor_supervisor_view_includes_full_line_state_and_alerts(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        response = client.get("/api/view/floor_supervisor")
+    assert response.status_code == 200
+    body = response.json()
+    assert "line_state" in body
+    assert "stations" in body["line_state"]
+    assert isinstance(body["active_alert_station_ids"], list)
+
+
+def test_plant_manager_view_includes_summary_counts(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        response = client.get("/api/view/plant_manager")
+    assert response.status_code == 200
+    body = response.json()
+    assert "line_state" in body
+    summary = body["summary"]
+    assert summary["occupied_station_count"] >= 0
+    assert summary["alarm_station_count"] >= 0
+
+
+def test_leadership_view_has_no_per_station_detail(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        response = client.get("/api/view/leadership")
+    assert response.status_code == 200
+    body = response.json()
+    assert "line_state" not in body
+    assert "stations" not in body
+    assert set(body.keys()) == {"summary"}
+
+
+def test_role_views_without_load_return_conflict(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        assert client.get("/api/view/operator", params={"station_id": "ST-01"}).status_code == 409
+        assert client.get("/api/view/floor_supervisor").status_code == 409
+        assert client.get("/api/view/plant_manager").status_code == 409
+        assert client.get("/api/view/leadership").status_code == 409

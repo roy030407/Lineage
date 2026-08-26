@@ -2,9 +2,17 @@
 
 import { useEffect } from "react";
 
+import type { Role } from "../state/types";
 import { useLineageStore } from "../state/store";
 
 const SPEEDS = [1, 10, 60] as const;
+const ROLES: { value: Role; label: string }[] = [
+  { value: "mirror", label: "Mirror" },
+  { value: "operator", label: "Operator" },
+  { value: "floor_supervisor", label: "Floor Supervisor" },
+  { value: "plant_manager", label: "Plant Manager" },
+  { value: "leadership", label: "Leadership" },
+];
 
 export function TopBar() {
   const lineSpec = useLineageStore((s) => s.lineSpec);
@@ -16,6 +24,8 @@ export function TopBar() {
   const pause = useLineageStore((s) => s.pause);
   const step = useLineageStore((s) => s.step);
   const setSpeed = useLineageStore((s) => s.setSpeed);
+  const role = useLineageStore((s) => s.role);
+  const setRole = useLineageStore((s) => s.setRole);
 
   useEffect(() => {
     void loadRuns();
@@ -35,6 +45,18 @@ export function TopBar() {
       }}
     >
       <span style={{ font: "var(--text-h1)" }}>{lineSpec?.plant_name ?? "Lineage"}</span>
+
+      <select
+        value={role}
+        onChange={(event) => setRole(event.target.value as Role)}
+        aria-label="Select role view"
+      >
+        {ROLES.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </select>
 
       {runs.length > 0 && (
         <select

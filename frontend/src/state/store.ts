@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { getCar, getLine, listRuns, replayControl } from "./api";
-import type { CarTwin, LineSpec, LineState, RunSummary } from "./types";
+import type { CarTwin, LineSpec, LineState, Role, RunSummary } from "./types";
 
 interface LineageStore {
   lineSpec: LineSpec | null;
@@ -13,6 +13,7 @@ interface LineageStore {
   selectedCarId: string | null;
   selectedCarTwin: CarTwin | null;
   followedCarId: string | null;
+  role: Role;
 
   loadLineSpec: () => Promise<void>;
   loadRuns: () => Promise<void>;
@@ -21,6 +22,7 @@ interface LineageStore {
   selectStation: (stationId: string | null) => void;
   selectCar: (carId: string | null) => Promise<void>;
   followCar: (carId: string | null) => void;
+  setRole: (role: Role) => void;
 
   loadRun: (runId: string) => Promise<void>;
   play: () => Promise<void>;
@@ -39,6 +41,7 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   selectedCarId: null,
   selectedCarTwin: null,
   followedCarId: null,
+  role: "mirror",
 
   loadLineSpec: async () => {
     const lineSpec = await getLine();
@@ -70,6 +73,8 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   },
 
   followCar: (carId) => set({ followedCarId: carId }),
+
+  setRole: (role) => set({ role }),
 
   loadRun: async (runId) => {
     await replayControl({ action: "load", run_id: runId });

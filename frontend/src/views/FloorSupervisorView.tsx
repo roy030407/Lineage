@@ -1,11 +1,11 @@
-// Plant Manager role view: line-wide summary counters up front, full
-// per-station detail below for anyone drilling in.
+// Floor Supervisor role view: the full line, plus active alerts surfaced up
+// front rather than requiring a scan of every station's lamps.
 
-import { getPlantManagerView } from "../state/api";
+import { getFloorSupervisorView } from "../state/api";
 import { useRolePoll } from "./useRolePoll";
 
-export function PlantManagerView() {
-  const view = useRolePoll(getPlantManagerView, []);
+export function FloorSupervisorView() {
+  const view = useRolePoll(getFloorSupervisorView, []);
 
   if (!view) {
     return (
@@ -19,24 +19,18 @@ export function PlantManagerView() {
 
   return (
     <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
-      <p className="eyebrow">Plant Manager view</p>
+      <p className="eyebrow">Floor Supervisor view</p>
 
-      <div style={{ display: "flex", gap: "2rem", marginTop: "1rem" }}>
-        <div>
-          <p className="eyebrow">Occupied stations</p>
-          <p style={{ font: "var(--text-h1)" }}>{view.summary.occupied_station_count}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Stations in alarm</p>
-          <p style={{ font: "var(--text-h1)" }}>{view.summary.alarm_station_count}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Avg. upstream buffer</p>
-          <p style={{ font: "var(--text-h1)" }}>
-            {view.summary.average_upstream_buffer_depth.toFixed(1)}
-          </p>
-        </div>
-      </div>
+      <p className="eyebrow" style={{ marginTop: "1rem" }}>
+        Active alerts ({view.active_alert_station_ids.length})
+      </p>
+      {view.active_alert_station_ids.length === 0 ? (
+        <p>No stations currently in alarm.</p>
+      ) : (
+        <p style={{ color: "var(--color-beacon-red)" }}>
+          {view.active_alert_station_ids.join(", ")}
+        </p>
+      )}
 
       <p className="eyebrow" style={{ marginTop: "1.5rem" }}>
         All stations

@@ -9,9 +9,14 @@ import { Scene } from "./scene/Scene";
 import { TopBar } from "./components/TopBar";
 import { connectLineWebSocket } from "./state/wsClient";
 import { useLineageStore } from "./state/store";
+import { FloorSupervisorView } from "./views/FloorSupervisorView";
+import { LeadershipView } from "./views/LeadershipView";
+import { OperatorView } from "./views/OperatorView";
+import { PlantManagerView } from "./views/PlantManagerView";
 
 export default function App() {
   const loadLineSpec = useLineageStore((s) => s.loadLineSpec);
+  const role = useLineageStore((s) => s.role);
 
   useEffect(() => {
     void loadLineSpec();
@@ -22,10 +27,18 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <TopBar />
-      <div style={{ position: "relative", flex: 1, minHeight: 0 }}>
-        <Scene />
-        <StationPanel />
-        <CarPanel />
+      <div style={{ position: "relative", flex: 1, minHeight: 0, overflowY: "auto" }}>
+        {role === "mirror" && (
+          <>
+            <Scene />
+            <StationPanel />
+            <CarPanel />
+          </>
+        )}
+        {role === "operator" && <OperatorView />}
+        {role === "floor_supervisor" && <FloorSupervisorView />}
+        {role === "plant_manager" && <PlantManagerView />}
+        {role === "leadership" && <LeadershipView />}
       </div>
     </div>
   );

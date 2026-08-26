@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from lineage.api.deps import get_app_state
 from lineage.api.routes.line import router as line_router
 from lineage.api.routes.mirror import router as mirror_router
+from lineage.api.routes.views import router as views_router
 from lineage.replay.models import PlaybackMode
 
 TICK_INTERVAL_REAL_S = 1.0
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     app = FastAPI(lifespan=_lifespan)
     app.include_router(line_router)
     app.include_router(mirror_router)
+    app.include_router(views_router)
     return app
 
 
