@@ -1,1 +1,127 @@
 """Tests for lineage.api.routes; to be filled in alongside real logic."""
+
+from datetime import date
+
+from fastapi.testclient import TestClient
+
+from lineage.api.app import create_app
+from lineage.api.deps import AppState, reset_app_state
+from lineage.config.specs import (
+    AcquisitionMode,
+    CommissioningBaseline,
+    ConditionStats,
+    EnvironmentEnvelope,
+    LayoutSpec,
+    LineSpec,
+    MachineSpec,
+    SensorKind,
+    SensorSpec,
+    StationCoordinate,
+    StationSpec,
+    Zone,
+)
+from lineage.datagen.models import RunConfig
+from lineage.datagen.run import generate_run
+
+
+def _tiny_line() -> LineSpec:
+    machine = MachineSpec(
+        model="M",
+        install_year=2020,
+        last_maintenance_date=date(2024, 1, 1),
+        maintenance_interval_days=90,
+        wear_curve_shape="linear",
+    )
+    sensor = SensorSpec(
+        id="ST-01-SEN-1",
+        kind=SensorKind.TORQUE,
+        unit="N.m",
+        sample_rate_hz=50.0,
+        install_date=date(2020, 1, 1),
+        last_calibration_date=date(2024, 1, 1),
+        accuracy_class="1.0",
+    )
+    baseline = CommissioningBaseline(
+        idle=ConditionStats(mean={"ST-01-SEN-1": 10.0}, std={"ST-01-SEN-1": 0.5}),
+        loaded=ConditionStats(mean={"ST-01-SEN-1": 20.0}, std={"ST-01-SEN-1": 1.0}),
+    )
+    stations = [
+        StationSpec(
+            id="ST-01",
+            name="Only Station",
+            zone=Zone.BODY,
+            sequence_index=0,
+            sensors=[sensor],
+            acquisition_mode=AcquisitionMode.INSTRUMENTED,
+            cycle_time_nominal_s=10.0,
+            commissioning_baseline=baseline,
+            machine=machine,
+            cost_per_hour=10.0,
+            value_add_pct=1.0,
+        )
+    ]
+    return LineSpec(
+        plant_name="Test Plant",
+        site="Testville",
+        stations=stations,
+        layout=LayoutSpec(
+            coordinates=[StationCoordinate(station_id="ST-01", x_m=0.0, y_m=0.0)], segments=[]
+        ),
+        environment_envelope=EnvironmentEnvelope(
+            temp_min_c=18.0, temp_max_c=26.0, humidity_min_pct=30.0, humidity_max_pct=60.0
+        ),
+    )
+
+
+def _setup_state(tmp_path) -> AppState:
+    line = _tiny_line()
+    config = RunConfig(
+        run_id="api-test-run",
+        random_seed=1,
+        num_cars=3,
+        background_defect_rate=0.0,
+        baseline_temp_c=22.0,
+        operator_profiles=[],
+        operator_shift_schedule=[],
+    )
+    runs_root = tmp_path / "runs"
+    generate_run(line, config, output_root=runs_root)
+
+    state = AppState(line=line, runs_root=runs_root)
+    reset_app_state(state)
+    return state
+
+
+def test_get_line_returns_line_spec(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        response = client.get("/api/line")
+    assert response.status_code == 200
+    assert response.json()["plant_name"] == "Test Plant"
+
+
+def test_list_runs_and_load_and_ws_stream(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        runs = client.get("/api/runs").json()
+        assert {"run_id": "api-test-run"} in runs
+
+        loaded = client.post(
+            "/api/replay/control", json={"action": "load", "run_id": "api-test-run"}
+        )
+        assert loaded.status_code == 200
+
+        stepped = client.post("/api/replay/control", json={"action": "step"})
+        assert stepped.status_code == 200
+
+        with client.websocket_connect("/ws/line") as websocket:
+            message = websocket.receive_json()
+            assert message["run_id"] == "api-test-run"
+            assert "stations" in message
+
+
+def test_replay_control_without_load_returns_conflict(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        response = client.post("/api/replay/control", json={"action": "pause"})
+    assert response.status_code == 409

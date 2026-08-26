@@ -364,8 +364,21 @@ def _derive_buffer_events(
     return events
 
 
+TELEMETRY_COLUMNS = [
+    "timestamp",
+    "car_id",
+    "station_id",
+    "sensor_id",
+    "quantity",
+    "value",
+    "acquisition_mode",
+]
+EVENTS_COLUMNS = ["timestamp", "event_type", "car_id", "station_id", "detail"]
+INSPECTION_COLUMNS = ["timestamp", "car_id", "station_id", "result", "defect_type"]
+
+
 def write_telemetry_csv(rows: list[TelemetryRow], path: Path) -> None:
-    df = pd.DataFrame([r.__dict__ for r in rows])
+    df = pd.DataFrame([r.__dict__ for r in rows], columns=TELEMETRY_COLUMNS)
     df = df.sort_values(["timestamp", "car_id", "station_id", "sensor_id"]).reset_index(drop=True)
     df.to_csv(path, index=False)
 
@@ -378,13 +391,13 @@ def write_events_csv(rows: list[EventRow], path: Path) -> None:
         }
         for r in rows
     ]
-    df = pd.DataFrame(records)
+    df = pd.DataFrame(records, columns=EVENTS_COLUMNS)
     sort_cols = ["timestamp", "event_type", "station_id"]
     df = df.sort_values(sort_cols, kind="stable").reset_index(drop=True)
     df.to_csv(path, index=False)
 
 
 def write_inspection_csv(rows: list[InspectionRow], path: Path) -> None:
-    df = pd.DataFrame([r.__dict__ for r in rows])
+    df = pd.DataFrame([r.__dict__ for r in rows], columns=INSPECTION_COLUMNS)
     df = df.sort_values(["timestamp", "car_id", "station_id"]).reset_index(drop=True)
     df.to_csv(path, index=False)
