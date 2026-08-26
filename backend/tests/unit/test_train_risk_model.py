@@ -9,7 +9,10 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parents[3] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-from train_risk_model import report, time_split  # noqa: E402
+from train_risk_model import randomized_run_config, report, time_split  # noqa: E402
+
+from lineage.config.loader import load_line_spec  # noqa: E402
+from lineage.datagen.cli import DEFAULT_LINE_PATH  # noqa: E402
 
 
 def test_time_split_never_reorders_and_respects_fractions():
@@ -34,3 +37,22 @@ def test_report_computes_expected_metric_keys():
     assert set(metrics.keys()) == {"precision", "recall", "f1", "auc"}
     assert metrics["precision"] == 1.0
     assert metrics["recall"] == 1.0
+
+
+def test_randomized_run_config_places_scenarios_independently_per_seed():
+    line = load_line_spec(DEFAULT_LINE_PATH)
+
+    config_a = randomized_run_config(line, "test-a", seed=1)
+    config_b = randomized_run_config(line, "test-b", seed=2)
+
+    onset_a = config_a.defect_seeds[0].onset_car_index
+    onset_b = config_b.defect_seeds[0].onset_car_index
+    assert onset_a != onset_b  # different seeds land at different windows
+
+    # Every scenario window must fit inside the run and leave room for its
+    # own duration, regardless of seed.
+    for config in (config_a, config_b):
+        seed = config.defect_seeds[0]
+        assert 0 <= seed.onset_car_index <= config.num_cars - seed.duration_cars
+        excursion = config.environment_excursions[0]
+        assert 0 <= excursion.start_car_index < excursion.end_car_index < config.num_cars
