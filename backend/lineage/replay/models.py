@@ -33,6 +33,15 @@ class PlaybackMode(StrEnum):
     STEP = "step"
 
 
+class LatestReading(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    sensor_id: str
+    quantity: str
+    value: float
+    timestamp: datetime
+
+
 class StationState(BaseModel):
     model_config = ConfigDict(revalidate_instances="always")
 
@@ -41,6 +50,7 @@ class StationState(BaseModel):
     upstream_buffer_depth: int
     sensor_health: SensorHealth
     machine_health: MachineHealth
+    latest_readings: list[LatestReading] = Field(default_factory=list)
 
 
 class LineState(BaseModel):

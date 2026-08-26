@@ -6,6 +6,7 @@ from lineage.config.specs import LineSpec
 from lineage.replay.engine import ReplayEngine
 from lineage.replay.store import SnapshotHistory
 from lineage.replay.ws import ConnectionManager
+from lineage.twin.genealogy import GenealogyStore
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_LINE_PATH = BACKEND_DIR / "data" / "lines" / "example_42.yaml"
@@ -19,6 +20,10 @@ class AppState:
         self.engine: ReplayEngine | None = None
         self.connection_manager = ConnectionManager()
         self.snapshot_history = SnapshotHistory()
+        self.genealogy_store: GenealogyStore | None = None
+        """Built once via twin.ingest.from_generated_run when a run is
+        loaded (see api/routes/mirror.py's "load" action); car-history
+        queries read from this cache, they never rebuild it per request."""
 
 
 _state: AppState | None = None

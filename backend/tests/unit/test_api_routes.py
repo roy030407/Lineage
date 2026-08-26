@@ -125,3 +125,34 @@ def test_replay_control_without_load_returns_conflict(tmp_path):
     with TestClient(create_app()) as client:
         response = client.post("/api/replay/control", json={"action": "pause"})
     assert response.status_code == 409
+
+
+def test_get_car_reads_from_cached_genealogy_store(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        loaded = client.post(
+            "/api/replay/control", json={"action": "load", "run_id": "api-test-run"}
+        )
+        assert loaded.status_code == 200
+
+        response = client.get("/api/cars/CAR-00000")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["car_id"] == "CAR-00000"
+        assert len(body["visits"]) > 0
+        assert body["visits"][0]["station_id"] == "ST-01"
+
+
+def test_get_car_without_load_returns_conflict(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        response = client.get("/api/cars/CAR-00000")
+    assert response.status_code == 409
+
+
+def test_get_unknown_car_returns_404(tmp_path):
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        response = client.get("/api/cars/CAR-99999")
+    assert response.status_code == 404

@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 from lineage.config.specs import StationSpec
+from lineage.replay.models import LatestReading
 
 
 class RunData:
@@ -59,6 +60,27 @@ class RunData:
             return False
         last_ts = rows.iloc[-1].timestamp.to_pydatetime()
         return (timestamp - last_ts) <= timedelta(seconds=self.sensor_stale_after_s)
+
+    def latest_readings_at(self, station: StationSpec, timestamp: datetime) -> list[LatestReading]:
+        """The most recent reading for each of this station's sensors (or
+        manual quantities) at or before `timestamp` -- one entry per
+        sensor_id that has reported at all so far, none for one that
+        hasn't (never a fabricated placeholder value)."""
+        rows = self._telemetry[
+            (self._telemetry.station_id == station.id) & (self._telemetry.timestamp <= timestamp)
+        ]
+        if rows.empty:
+            return []
+        latest_per_sensor = rows.sort_values("timestamp").groupby("sensor_id").tail(1)
+        return [
+            LatestReading(
+                sensor_id=row.sensor_id,
+                quantity=row.quantity,
+                value=float(row.value),
+                timestamp=row.timestamp.to_pydatetime(),
+            )
+            for row in latest_per_sensor.itertuples()
+        ]
 
     def machine_is_maintained(self, station: StationSpec, timestamp: datetime) -> bool:
         maintenance_events = self._events[

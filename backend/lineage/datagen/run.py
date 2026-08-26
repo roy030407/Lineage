@@ -43,11 +43,13 @@ def generate_run(line: LineSpec, config: RunConfig, output_root: Path) -> RunArt
     events_path = output_dir / "events.csv"
     inspection_path = output_dir / "inspection.csv"
     ground_truth_path = output_dir / "ground_truth.json"
+    run_config_path = output_dir / "run_config.json"
 
     write_telemetry_csv(result.telemetry_rows, telemetry_path)
     write_events_csv(result.events_rows, events_path)
     write_inspection_csv(inspection_rows, inspection_path)
     write_ground_truth_json(ground_truth, ground_truth_path)
+    run_config_path.write_text(config.model_dump_json(indent=2), encoding="utf-8")
 
     return RunArtifacts(
         run_id=config.run_id,
@@ -56,5 +58,6 @@ def generate_run(line: LineSpec, config: RunConfig, output_root: Path) -> RunArt
         events_path=events_path,
         inspection_path=inspection_path,
         ground_truth_path=ground_truth_path,
+        run_config_path=run_config_path,
         num_cars=config.num_cars,
     )

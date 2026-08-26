@@ -67,6 +67,7 @@ class ReplayEngine:
                     upstream_buffer_depth=self.run_data.buffer_depth_at(station.id, timestamp),
                     sensor_health=sensor_health,
                     machine_health=machine_health,
+                    latest_readings=self.run_data.latest_readings_at(station, timestamp),
                 )
             )
 

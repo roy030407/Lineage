@@ -120,6 +120,7 @@ class RunArtifacts(BaseModel):
     events_path: Path
     inspection_path: Path
     ground_truth_path: Path
+    run_config_path: Path
     num_cars: int
 
 

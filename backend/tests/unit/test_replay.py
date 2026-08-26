@@ -190,3 +190,21 @@ def test_machine_health_green_when_freshly_maintained(tmp_path):
     engine = make_engine(tmp_path)
     state = engine.current_state()
     assert all(s.machine_health == MachineHealth.GREEN for s in state.stations)
+
+
+def test_latest_readings_present_for_instrumented_absent_for_manual(tmp_path):
+    engine = make_engine(tmp_path)
+    # Advance a few ticks so at least one car has actually reported.
+    for _ in range(5):
+        engine.tick()
+    state = engine.current_state()
+
+    instrumented = next(s for s in state.stations if s.station_id == "ST-01")
+    assert instrumented.latest_readings, "expected at least one reading after 5 ticks"
+    for reading in instrumented.latest_readings:
+        assert reading.sensor_id == "ST-01-SEN-1"
+        assert isinstance(reading.value, float)
+
+    manual = next(s for s in state.stations if s.station_id == "ST-02")
+    for reading in manual.latest_readings:
+        assert reading.quantity == "torque_nm"
