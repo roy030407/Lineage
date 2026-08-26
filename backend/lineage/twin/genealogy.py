@@ -34,6 +34,9 @@ class GenealogyStore:
     def car(self, car_id: str) -> CarTwin:
         return self._cars[car_id]
 
+    def all_car_ids(self) -> list[str]:
+        return list(self._cars.keys())
+
     def cars_through(self, station_id: str, t_start: datetime, t_end: datetime) -> list[str]:
         """Every car whose visit to `station_id` began within [t_start, t_end].
         This is what powers the at-risk cohort list: given a station and a

@@ -13,5 +13,8 @@ dist/
 # Runtime-generated run output (not the curated example fixtures under backend/data/lines/)
 backend/data/runs/
 
+# Trained models -- regenerate with scripts/train_risk_model.py, not committed
+backend/data/models/
+
 # OS/editor
 .DS_Store

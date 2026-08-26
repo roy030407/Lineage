@@ -29,6 +29,11 @@ class StationVisit(BaseModel):
     exit_time: datetime
     readings: list[Reading] = Field(default_factory=list)
     operator_id: str | None = None
+    handover_flagged: bool | None = None
+    """Set only on the visit that coincides with a shift-change event at this
+    station; None on every other visit. This is what lets a consumer walk a
+    station's visit history and reconstruct exactly the shift-change
+    boundaries, without needing raw event data threaded in separately."""
     machine_wear_state: float
     ambient_conditions: AmbientConditions
 
