@@ -10,12 +10,28 @@ import type {
   PlantManagerView,
   ReplayControlRequest,
   RunSummary,
+  StationSpec,
 } from "./types";
 
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path);
   if (!response.ok) {
     throw new Error(`GET ${path} failed: ${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as T;
+}
+
+async function postJson<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(
+      `POST ${path} failed: ${response.status} ${detail?.detail ?? response.statusText}`,
+    );
   }
   return (await response.json()) as T;
 }
@@ -46,6 +62,48 @@ export function getPlantManagerView(): Promise<PlantManagerView> {
 
 export function getLeadershipView(): Promise<LeadershipView> {
   return getJson<LeadershipView>("/api/view/leadership");
+}
+
+export function startBuilderDraft(): Promise<LineSpec> {
+  return postJson<LineSpec>("/api/builder/draft/start");
+}
+
+export function getBuilderDraft(): Promise<LineSpec> {
+  return getJson<LineSpec>("/api/builder/draft");
+}
+
+export function insertBuilderStation(
+  station: StationSpec,
+  afterStationId: string | null,
+): Promise<LineSpec> {
+  return postJson<LineSpec>("/api/builder/draft/stations", {
+    station,
+    after_station_id: afterStationId,
+  });
+}
+
+export async function removeBuilderStation(stationId: string): Promise<LineSpec> {
+  const response = await fetch(`/api/builder/draft/stations/${encodeURIComponent(stationId)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(`remove station failed: ${response.status} ${detail?.detail ?? ""}`);
+  }
+  return (await response.json()) as LineSpec;
+}
+
+export function moveBuilderStation(
+  stationId: string,
+  direction: "up" | "down",
+): Promise<LineSpec> {
+  return postJson<LineSpec>(`/api/builder/draft/stations/${encodeURIComponent(stationId)}/move`, {
+    direction,
+  });
+}
+
+export function saveBuilderDraft(filename: string): Promise<{ ok: boolean; filename: string }> {
+  return postJson<{ ok: boolean; filename: string }>("/api/builder/save", { filename });
 }
 
 export async function replayControl(request: ReplayControlRequest): Promise<void> {

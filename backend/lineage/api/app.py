@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from lineage.api.deps import get_app_state
+from lineage.api.routes.builder import router as builder_router
 from lineage.api.routes.line import router as line_router
 from lineage.api.routes.mirror import router as mirror_router
 from lineage.api.routes.views import router as views_router
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(line_router)
     app.include_router(mirror_router)
     app.include_router(views_router)
+    app.include_router(builder_router)
     return app
 
 

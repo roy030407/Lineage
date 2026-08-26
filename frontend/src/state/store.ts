@@ -14,6 +14,7 @@ interface LineageStore {
   selectedCarTwin: CarTwin | null;
   followedCarId: string | null;
   role: Role;
+  builderOpen: boolean;
 
   loadLineSpec: () => Promise<void>;
   loadRuns: () => Promise<void>;
@@ -23,6 +24,7 @@ interface LineageStore {
   selectCar: (carId: string | null) => Promise<void>;
   followCar: (carId: string | null) => void;
   setRole: (role: Role) => void;
+  setBuilderOpen: (open: boolean) => void;
 
   loadRun: (runId: string) => Promise<void>;
   play: () => Promise<void>;
@@ -42,6 +44,7 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   selectedCarTwin: null,
   followedCarId: null,
   role: "mirror",
+  builderOpen: false,
 
   loadLineSpec: async () => {
     const lineSpec = await getLine();
@@ -75,6 +78,7 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   followCar: (carId) => set({ followedCarId: carId }),
 
   setRole: (role) => set({ role }),
+  setBuilderOpen: (open) => set({ builderOpen: open }),
 
   loadRun: async (runId) => {
     await replayControl({ action: "load", run_id: runId });

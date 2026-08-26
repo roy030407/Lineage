@@ -26,6 +26,8 @@ export function TopBar() {
   const setSpeed = useLineageStore((s) => s.setSpeed);
   const role = useLineageStore((s) => s.role);
   const setRole = useLineageStore((s) => s.setRole);
+  const builderOpen = useLineageStore((s) => s.builderOpen);
+  const setBuilderOpen = useLineageStore((s) => s.setBuilderOpen);
 
   useEffect(() => {
     void loadRuns();
@@ -57,6 +59,13 @@ export function TopBar() {
           </option>
         ))}
       </select>
+
+      <button
+        onClick={() => setBuilderOpen(!builderOpen)}
+        aria-pressed={builderOpen}
+      >
+        {builderOpen ? "Close Builder" : "Builder"}
+      </button>
 
       {runs.length > 0 && (
         <select

@@ -3,6 +3,7 @@
 
 import { useEffect } from "react";
 
+import { StationBuilder } from "./builder/StationBuilder";
 import { CarPanel } from "./panels/CarPanel";
 import { StationPanel } from "./panels/StationPanel";
 import { Scene } from "./scene/Scene";
@@ -17,6 +18,7 @@ import { PlantManagerView } from "./views/PlantManagerView";
 export default function App() {
   const loadLineSpec = useLineageStore((s) => s.loadLineSpec);
   const role = useLineageStore((s) => s.role);
+  const builderOpen = useLineageStore((s) => s.builderOpen);
 
   useEffect(() => {
     void loadLineSpec();
@@ -28,17 +30,23 @@ export default function App() {
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <TopBar />
       <div style={{ position: "relative", flex: 1, minHeight: 0, overflowY: "auto" }}>
-        {role === "mirror" && (
+        {builderOpen ? (
+          <StationBuilder />
+        ) : (
           <>
-            <Scene />
-            <StationPanel />
-            <CarPanel />
+            {role === "mirror" && (
+              <>
+                <Scene />
+                <StationPanel />
+                <CarPanel />
+              </>
+            )}
+            {role === "operator" && <OperatorView />}
+            {role === "floor_supervisor" && <FloorSupervisorView />}
+            {role === "plant_manager" && <PlantManagerView />}
+            {role === "leadership" && <LeadershipView />}
           </>
         )}
-        {role === "operator" && <OperatorView />}
-        {role === "floor_supervisor" && <FloorSupervisorView />}
-        {role === "plant_manager" && <PlantManagerView />}
-        {role === "leadership" && <LeadershipView />}
       </div>
     </div>
   );

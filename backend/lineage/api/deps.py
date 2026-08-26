@@ -9,14 +9,21 @@ from lineage.replay.ws import ConnectionManager
 from lineage.twin.genealogy import GenealogyStore
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_LINE_PATH = BACKEND_DIR / "data" / "lines" / "example_42.yaml"
+LINES_ROOT = BACKEND_DIR / "data" / "lines"
+DEFAULT_LINE_PATH = LINES_ROOT / "example_42.yaml"
 RUNS_ROOT = BACKEND_DIR / "data" / "runs"
 
 
 class AppState:
-    def __init__(self, line: LineSpec | None = None, runs_root: Path = RUNS_ROOT) -> None:
+    def __init__(
+        self,
+        line: LineSpec | None = None,
+        runs_root: Path = RUNS_ROOT,
+        lines_root: Path = LINES_ROOT,
+    ) -> None:
         self.line: LineSpec | None = line
         self.runs_root = runs_root
+        self.lines_root = lines_root
         self.engine: ReplayEngine | None = None
         self.connection_manager = ConnectionManager()
         self.snapshot_history = SnapshotHistory()
@@ -24,6 +31,10 @@ class AppState:
         """Built once via twin.ingest.from_generated_run when a run is
         loaded (see api/routes/mirror.py's "load" action); car-history
         queries read from this cache, they never rebuild it per request."""
+        self.builder_draft: LineSpec | None = None
+        """A LineSpec being edited by the builder, independent of `line` --
+        editing a draft never disturbs a Mirror session using the loaded
+        line for replay. See api/routes/builder.py."""
 
 
 _state: AppState | None = None
