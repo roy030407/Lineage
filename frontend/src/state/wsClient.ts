@@ -8,14 +8,24 @@ import type { LineState } from "./types";
 
 const RECONNECT_DELAY_MS = 2000;
 
+// VITE_WS_URL is the full ws(s):// URL for a split deployment (frontend on
+// Vercel, backend on Render, different origins -- same-origin construction
+// below would otherwise point back at Vercel, where there's no WebSocket).
+// Left unset, same-origin still works for local dev via the vite proxy.
+function lineWebSocketUrl(): string {
+  const configured = import.meta.env.VITE_WS_URL;
+  if (configured) return configured;
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/line`;
+}
+
 export function connectLineWebSocket(): () => void {
   let socket: WebSocket | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let closedByCaller = false;
 
   function connect() {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    socket = new WebSocket(`${protocol}//${window.location.host}/ws/line`);
+    socket = new WebSocket(lineWebSocketUrl());
 
     socket.onmessage = (event) => {
       const state = JSON.parse(event.data) as LineState;

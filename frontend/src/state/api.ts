@@ -1,6 +1,8 @@
-// REST client wrapper for the line/replay/car endpoints. Relative paths only
-// -- the vite dev server proxies /api to the backend, no CORS handling needed.
-
+// REST client wrapper for the line/replay/car endpoints. Every path is
+// prefixed with VITE_API_BASE_URL when set (a split deployment -- frontend
+// on Vercel, backend on Render, different origins). Left unset, it's "",
+// so paths stay relative exactly as before: the vite dev server proxies
+// /api to the backend locally, no CORS handling needed there either way.
 import type {
   CarTwin,
   FloorSupervisorView,
@@ -15,16 +17,20 @@ import type {
   TrendState,
 } from "./types";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(path);
+  const url = `${API_BASE}${path}`;
+  const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`GET ${path} failed: ${response.status} ${response.statusText}`);
+    throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
   }
   return (await response.json()) as T;
 }
 
 async function postJson<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(path, {
+  const url = `${API_BASE}${path}`;
+  const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -32,7 +38,7 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
     throw new Error(
-      `POST ${path} failed: ${response.status} ${detail?.detail ?? response.statusText}`,
+      `POST ${url} failed: ${response.status} ${detail?.detail ?? response.statusText}`,
     );
   }
   return (await response.json()) as T;
@@ -85,9 +91,10 @@ export function insertBuilderStation(
 }
 
 export async function removeBuilderStation(stationId: string): Promise<LineSpec> {
-  const response = await fetch(`/api/builder/draft/stations/${encodeURIComponent(stationId)}`, {
-    method: "DELETE",
-  });
+  const response = await fetch(
+    `${API_BASE}/api/builder/draft/stations/${encodeURIComponent(stationId)}`,
+    { method: "DELETE" },
+  );
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
     throw new Error(`remove station failed: ${response.status} ${detail?.detail ?? ""}`);
@@ -131,7 +138,7 @@ export function getPredictTrend(
 }
 
 export async function replayControl(request: ReplayControlRequest): Promise<void> {
-  const response = await fetch("/api/replay/control", {
+  const response = await fetch(`${API_BASE}/api/replay/control`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
