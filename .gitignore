@@ -10,11 +10,28 @@ __pycache__/
 node_modules/
 dist/
 
-# Runtime-generated run output (not the curated example fixtures under backend/data/lines/)
-backend/data/runs/
+# Local env overrides (frontend/.env.example is committed and stays tracked;
+# this only excludes real local values someone creates from it).
+.env
+.env.local
+.env.*.local
 
-# Trained models -- regenerate with scripts/train_risk_model.py, not committed
-backend/data/models/
+# Runtime-generated run output (not the curated example fixtures under backend/data/lines/).
+# default_400_car_run is the one exception: committed on purpose so a fresh
+# deploy (Render's filesystem doesn't persist between deploys) has it without
+# a startup delay -- see the startup safety-net in api/app.py, which only
+# regenerates it if it's somehow missing.
+backend/data/runs/*
+!backend/data/runs/default_400_car_run/
+!backend/data/runs/default_400_car_run/**
+
+# Trained models -- regenerate with scripts/train_risk_model.py. risk_v1 is
+# committed on purpose: training takes several minutes (see README's Known
+# limitations), far too heavy to ever run at boot, so a fresh deploy needs
+# the trained artifact already present rather than trying to produce one.
+backend/data/models/*
+!backend/data/models/risk_v1/
+!backend/data/models/risk_v1/**
 
 # OS/editor
 .DS_Store

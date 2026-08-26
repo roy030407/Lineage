@@ -1,0 +1,16 @@
+{
+  "version": "risk_v1",
+  "feature_names": [
+    "spc_out_of_control_fraction",
+    "spc_max_out_of_control_confidence",
+    "spc_environment_invalid_fraction",
+    "dwell_deviation_max",
+    "dwell_deviation_mean",
+    "machine_wear_state_max",
+    "machine_wear_state_mean",
+    "spc_recalibrating_fraction",
+    "ambient_deviation_max",
+    "upstream_cumulative_deviation_mean"
+  ],
+  "coverage_threshold": 0.5
+}
