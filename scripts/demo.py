@@ -249,13 +249,85 @@ def main() -> None:
         )
     pause()
 
-    banner("ACT 5 -- EVERYONE ELSE'S VIEW")
-    print("Back in the browser: the role selector switches between Operator")
-    print("(one station, nothing else), Floor Supervisor (the full line plus")
-    print("active alerts), Plant Manager, and Leadership (summary counters")
-    print("only -- no per-station detail in that response at all).")
-    print("The 'Builder' toggle edits a LineSpec live: insert or remove a")
-    print("station, reorder it, save the result as a new line file.")
+    banner("ACT 5 -- LEADERSHIP: a real, scoped role view")
+    print("Operator (one station, nothing else), Floor Supervisor (the full line")
+    print("plus active alerts), and Plant Manager are all live in the browser's")
+    print("role selector too. Leadership is the narrowest: its response has no")
+    print("per-station field at all, enforced by the response model itself --")
+    print("not the frontend choosing not to render one. Calling it for real:")
+    response = client.get(f"{API_BASE}/api/view/leadership")
+    response.raise_for_status()
+    leadership = response.json()
+    print(f"\nGET /api/view/leadership -> {leadership}")
+    summary = leadership["summary"]
+    print(f"  occupied stations:      {summary['occupied_station_count']}")
+    print(f"  stations in alarm:      {summary['alarm_station_count']}")
+    print(f"  avg upstream buffer:    {summary['average_upstream_buffer_depth']}")
+    print("That's the entire response -- no station list, no car list, nothing")
+    print("to redact on the way to the screen because it was never fetched.")
+    pause()
+
+    banner("ACT 6 -- BUILDER: a live mid-line station insert")
+    print("The 'Builder' toggle in the browser edits a LineSpec live. Proving the")
+    print("reshape actually happens -- not just narrating that the button exists:")
+    draft = client.post(f"{API_BASE}/api/builder/draft/start").json()
+    before_ids = [s["id"] for s in draft["stations"]]
+    mid_index = len(before_ids) // 2
+    # after_station_id may not be the line's actual last station -- insert_station
+    # rejects that (append at the tail means passing None instead). len // 2 is
+    # never the last index for a line long enough to have a meaningful "mid-line".
+    after_id = before_ids[mid_index]
+    print(
+        f"\nBefore: {len(before_ids)} stations. Inserting after {after_id!r} "
+        f"(position {mid_index} of {len(before_ids) - 1}, i.e. mid-line, not appended at an end)."
+    )
+
+    new_station = {
+        "id": "ST-DEMO-INSERT",
+        "name": "Demo Inserted Station",
+        "zone": draft["stations"][mid_index]["zone"],
+        "sequence_index": 0,  # overwritten by insert_station server-side
+        "sensors": [],
+        "acquisition_mode": "manual",
+        "is_inspection_station": False,
+        "cycle_time_nominal_s": 30.0,
+        "commissioning_baseline": None,
+        "changeable_params": {},
+        "readable_params": [],
+        "machine": {
+            "model": "Demo Station Rig",
+            "install_year": 2024,
+            "last_maintenance_date": "2024-01-01",
+            "maintenance_interval_days": 90,
+            "wear_curve_shape": "linear",
+        },
+        "cost_per_hour": 5.0,
+        "value_add_pct": 1.0,
+    }
+    response = client.post(
+        f"{API_BASE}/api/builder/draft/stations",
+        json={"station": new_station, "after_station_id": after_id},
+    )
+    response.raise_for_status()
+    updated = response.json()
+    after_ids = [s["id"] for s in updated["stations"]]
+    inserted_index = after_ids.index("ST-DEMO-INSERT")
+    inserted_seq = next(
+        s["sequence_index"] for s in updated["stations"] if s["id"] == "ST-DEMO-INSERT"
+    )
+    window = after_ids[max(0, inserted_index - 2) : inserted_index + 3]
+
+    print(f"\nAfter:  {len(after_ids)} stations (was {len(before_ids)}).")
+    print(f"Around the insertion point: {window}")
+    print(
+        f"New station's sequence_index: {inserted_seq} "
+        f"(matches its actual position in the list, {inserted_index})"
+    )
+    print(
+        "This is the same draft/insert_station endpoint the Builder screen calls -- "
+        "nothing here is a separate demo-only code path."
+    )
+
     print("\nThat's Lineage.")
 
 
