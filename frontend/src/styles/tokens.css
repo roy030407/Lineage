@@ -1,0 +1,77 @@
+/* Design tokens from the Lineage design plan -- palette, type, and the
+   signal vocabulary. Never re-decided in component files: everything reads
+   from these custom properties. */
+
+:root {
+  /* Palette */
+  --color-foundry: #22231f; /* base canvas */
+  --color-cast-steel: #4a4e47; /* panels, dividers, structural chrome */
+  --color-vellum: #dad5c6; /* primary text */
+  --color-beacon-green: #4c9a5b;
+  --color-beacon-amber: #e8a33d;
+  --color-beacon-red: #c43b3b;
+  --color-steel-neutral: #7a8380; /* NOT_APPLICABLE / unknown -- shape carries the signal, not a new hue */
+
+  /* Type */
+  --font-display: "Big Shoulders Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "Consolas", monospace;
+
+  --text-display: 700 2.5rem/1.1 var(--font-display);
+  --text-h1: 600 1.5rem/1.2 var(--font-display);
+  --text-h2: 500 1.125rem/1.3 var(--font-display);
+  --text-body: 400 0.9375rem/1.5 var(--font-body);
+  --text-eyebrow: 600 0.75rem/1.4 var(--font-body);
+  --text-data: 400 0.875rem/1.4 var(--font-mono);
+  --text-data-hero: 500 1.75rem/1.2 var(--font-mono);
+
+  --letter-spacing-eyebrow: 0.04em;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-foundry);
+  color: var(--color-vellum);
+  font: var(--text-body);
+}
+
+.eyebrow {
+  font: var(--text-eyebrow);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-steel-neutral);
+}
+
+.data {
+  font: var(--text-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hazard-hatch pattern for UNKNOWN/NOT_APPLICABLE in 2D panels -- the literal
+   diagonal-stripe treatment from the design plan (the 3D scene substitutes a
+   distinct shape instead, flagged separately as a scoped compromise). */
+.hazard-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-steel-neutral),
+    var(--color-steel-neutral) 6px,
+    var(--color-foundry) 6px,
+    var(--color-foundry) 12px
+  );
+}
+
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-beacon-amber);
+  outline-offset: 2px;
+}
