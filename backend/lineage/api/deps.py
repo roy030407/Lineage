@@ -1,5 +1,6 @@
 """Shared dependency injection: LineSpec, TickEngine, and registries."""
 
+import threading
 from pathlib import Path
 
 from lineage.act.ledger import AuditLedger
@@ -58,6 +59,19 @@ class AppState:
         gitignored (a locally-trained artifact, not committed), so a fresh
         clone or CI environment legitimately has none. See
         api/routes/predict.py."""
+        self.prediction_ledger_lock = threading.Lock()
+        """Guards the lazy build above. FastAPI runs sync `def` route
+        handlers in a real OS thread pool, not as coroutines on one event
+        loop, so a plain `if state.prediction_ledger is None: build it`
+        check is a genuine race: the frontend's 5s poll can (and did, in
+        practice) land a second request before the ~105s first build
+        finishes, starting an entirely redundant second build rather than
+        waiting for the first. A `threading.Lock` (not `asyncio.Lock`,
+        which isn't safe across real threads) plus a re-check of
+        `prediction_ledger` after acquiring it (double-checked locking) means
+        only the first request actually builds; every other concurrent
+        request blocks on the lock and then returns the same already-built
+        ledger instead of starting its own."""
         self.trace_results: list[TraceResult] | None = None
         """Every real failed inspection in the run, traced back to its likely
         origin -- built lazily on whichever of Act's proposal listing or

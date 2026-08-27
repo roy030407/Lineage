@@ -29,23 +29,42 @@ function MetricsRow({ stationId, metrics }: { stationId: string; metrics: Ledger
 export function PredictionLedgerView() {
   const [byStation, setByStation] = useState<Record<string, LedgerMetrics> | null>(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [building, setBuilding] = useState(false);
 
   const [trendStationId, setTrendStationId] = useState("");
   const [interventionAt, setInterventionAt] = useState("");
   const [trend, setTrend] = useState<TrendState | null | undefined>(undefined);
   const [trendError, setTrendError] = useState<string | null>(null);
 
+  // The backend's own first build is real, working, ~105s work -- not a
+  // hang -- but this 5s poll used to have no guard against overlapping
+  // itself: a poll landing mid-build started an entirely separate,
+  // redundant build rather than waiting for the one already running (see
+  // predict.py's prediction_ledger_lock for the matching backend fix).
+  // inFlight/hasLoadedOnce are plain closure variables, not state, since
+  // they only ever gate this effect's own re-entrancy and were never meant
+  // to trigger a re-render themselves.
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
+    let hasLoadedOnce = false;
+
     async function load() {
+      if (inFlight) return;
+      inFlight = true;
+      if (!hasLoadedOnce) setBuilding(true);
       try {
         const result = await getPredictMetricsByStation();
         if (!cancelled) {
           setByStation(result);
           setUnavailable(false);
+          hasLoadedOnce = true;
         }
       } catch {
         if (!cancelled) setUnavailable(true);
+      } finally {
+        inFlight = false;
+        if (!cancelled) setBuilding(false);
       }
     }
     void load();
@@ -88,7 +107,9 @@ export function PredictionLedgerView() {
     return (
       <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
         <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
-          Loading ledger…
+          {building
+            ? "Building predictions: assessing every car against every inspection station it reached. This can take up to a couple of minutes the first time, then stays cached."
+            : "Loading ledger..."}
         </p>
       </div>
     );

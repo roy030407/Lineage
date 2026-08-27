@@ -34,23 +34,31 @@ def _ensure_ledger(state: AppState) -> PredictionLedger:
         )
     assert state.line is not None  # a loaded engine implies a loaded line
 
-    try:
-        model = RiskModel(state.models_root / "risk_v1")
-        ledger = build_ledger_from_run(
-            state.line, state.genealogy_store, state.current_run_dir, model
-        )
-    except Exception as exc:
-        # data/models/ is gitignored (a locally-trained artifact, not
-        # committed), so "no trained risk model" is the expected case in a
-        # fresh clone or CI -- surfaced clearly, not a silently empty ledger.
-        raise HTTPException(
-            status_code=409,
-            detail="no prediction ledger available -- no trained risk model was found "
-            "under data/models/risk_v1",
-        ) from exc
+    with state.prediction_ledger_lock:
+        # Re-check now that we hold the lock: another request may have
+        # finished the ~105s build while we were waiting for it, in which
+        # case there is nothing left for this request to do but return it.
+        if state.prediction_ledger is not None:
+            return state.prediction_ledger
 
-    state.prediction_ledger = ledger
-    return ledger
+        try:
+            model = RiskModel(state.models_root / "risk_v1")
+            ledger = build_ledger_from_run(
+                state.line, state.genealogy_store, state.current_run_dir, model
+            )
+        except Exception as exc:
+            # data/models/ is gitignored (a locally-trained artifact, not
+            # committed), so "no trained risk model" is the expected case in
+            # a fresh clone or CI -- surfaced clearly, not a silently empty
+            # ledger.
+            raise HTTPException(
+                status_code=409,
+                detail="no prediction ledger available -- no trained risk model was found "
+                "under data/models/risk_v1",
+            ) from exc
+
+        state.prediction_ledger = ledger
+        return ledger
 
 
 @router.get("/api/predict/metrics")

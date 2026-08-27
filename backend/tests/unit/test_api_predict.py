@@ -1,6 +1,9 @@
 """Tests for lineage.api.routes.predict: metrics/trend endpoints, and the
 graceful "no trained model" degradation in the 'load' action."""
 
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 
 from fastapi.testclient import TestClient
@@ -185,6 +188,50 @@ def test_metrics_by_station_groups_correctly(tmp_path):
     body = response.json()
     assert set(body.keys()) == {"ST-01", "ST-02"}
     assert body["ST-01"]["true_positive"] == 1
+
+
+def test_concurrent_requests_build_the_ledger_only_once(tmp_path, monkeypatch):
+    """Regression test for a real bug: PredictionLedgerView.tsx polls every
+    5s with no in-flight guard, and _ensure_ledger used to only assign
+    state.prediction_ledger at the very end of a ~105s build with no
+    "build in progress" sentinel -- every poll landing before the first
+    build finished started its own independent, fully redundant rebuild.
+    Fakes a slow build (RiskModel construction and build_ledger_from_run
+    both patched) and fires two real concurrent requests via a thread pool,
+    mirroring how FastAPI actually dispatches sync `def` route handlers
+    (real OS threads, not coroutines) -- the same concurrency model that
+    made the original bug possible."""
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        loaded = client.post(
+            "/api/replay/control",
+            json={"action": "load", "run_id": "predict-api-test-run"},
+        )
+        assert loaded.status_code == 200
+
+        build_call_count = 0
+        build_call_count_lock = threading.Lock()
+
+        def slow_fake_build(*_args, **_kwargs) -> PredictionLedger:
+            nonlocal build_call_count
+            with build_call_count_lock:
+                build_call_count += 1
+            time.sleep(0.3)
+            return PredictionLedger()
+
+        monkeypatch.setattr(
+            "lineage.api.routes.predict.RiskModel", lambda *_a, **_k: object()
+        )
+        monkeypatch.setattr(
+            "lineage.api.routes.predict.build_ledger_from_run", slow_fake_build
+        )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(client.get, "/api/predict/metrics") for _ in range(2)]
+            responses = [future.result() for future in futures]
+
+    assert all(response.status_code == 200 for response in responses)
+    assert build_call_count == 1
 
 
 def test_trend_endpoint_returns_null_with_insufficient_data(tmp_path):

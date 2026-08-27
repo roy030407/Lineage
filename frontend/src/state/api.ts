@@ -26,13 +26,27 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
-async function getJson<T>(path: string): Promise<T> {
+// A hung request (dropped connection, unresponsive proxy) used to wedge a
+// view's loading state forever, with nothing to recover from -- every GET
+// now carries a real timeout via AbortController. 30s covers every normal
+// endpoint; predict.py's ledger endpoints override it explicitly (see
+// getPredictMetrics/getPredictMetricsByStation below) since that build is a
+// real, documented ~105s job on first use, not a hang.
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+async function getJson<T>(path: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
+    }
+    return (await response.json()) as T;
+  } finally {
+    clearTimeout(timeout);
   }
-  return (await response.json()) as T;
 }
 
 async function postJson<T>(path: string, body?: unknown): Promise<T> {
@@ -220,12 +234,21 @@ export function approveActProposal(proposalId: string, approverId: string): Prom
   });
 }
 
+// The backend's first build assesses every car in the run against every
+// inspection station it reached -- ~105s observed for a 400-car run (see
+// predict.py's own comment), cached after that. Give it real headroom
+// instead of the default 30s timeout.
+const PREDICT_LEDGER_TIMEOUT_MS = 120_000;
+
 export function getPredictMetrics(): Promise<LedgerMetrics> {
-  return getJson<LedgerMetrics>("/api/predict/metrics");
+  return getJson<LedgerMetrics>("/api/predict/metrics", PREDICT_LEDGER_TIMEOUT_MS);
 }
 
 export function getPredictMetricsByStation(): Promise<Record<string, LedgerMetrics>> {
-  return getJson<Record<string, LedgerMetrics>>("/api/predict/metrics/by_station");
+  return getJson<Record<string, LedgerMetrics>>(
+    "/api/predict/metrics/by_station",
+    PREDICT_LEDGER_TIMEOUT_MS,
+  );
 }
 
 export function getPredictTrend(
