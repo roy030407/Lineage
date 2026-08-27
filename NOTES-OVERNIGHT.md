@@ -655,29 +655,175 @@ Verified: `pytest -q` 182/182 (+18 new tests: `test_config.py` 32/32,
 `vitest run` 6/6 (+5 new), production build succeeds, `npx playwright
 test` 12/12 (the long-standing 9th test now passes, +3 new).
 
-## Remaining tasks
+## Task 9 — Final sweep ✅
 
-9. Final sweep
+### Gate, run fresh, full
 
-## Diagnosis on record (Task 2, not yet fixed)
+`pytest -q` 182/182 · `ruff check .` clean · `tsc --noEmit` clean ·
+`vitest run` 6/6 · production build succeeds · `npx playwright test`
+12/12. All six green, nothing skipped or weakened to get there.
 
-Root cause, ranked by confidence:
+### Screenshots
 
-1. **(Leading)** `AppState` is a bare process-wide global
-   (`api/deps.py`'s `_state`), and the tick loop (`app.py`'s `_tick_loop`)
-   only advances state on the process that has an `engine` set. If more
-   than one worker/instance serves traffic, "load" and the live
-   WebSocket can land on different processes -- the one serving the
-   WebSocket may never see `state.engine` set, so its tick loop
-   perpetually no-ops. `render.yaml`'s `startCommand` doesn't set
-   `--workers`, so this would only occur if the deployed instance count/
-   worker count was set to >1 some other way.
-2. **(Can't rule out without logs)** Render idle-throttling of the
-   background asyncio task between requests.
+`screenshots/` (project root), captured against a live-playing
+`default_400_car_run` at 60x so Mirror/role views show real, non-empty
+data, not a frozen initial state:
 
-Separately confirmed, real, distinct finding (now fixed, see Task 2's
-RED-conflation writeup above): `sensor_is_reporting` (`run_data.py`) used
-to return `False` -- mapped to RED -- both when a sensor had gone stale
-AND when it simply hadn't reported yet because simulated time hadn't
-reached it. These are different states; the UI now distinguishes them via
-`SensorHealth.NOT_YET_REPORTING`.
+- `01-mirror.png` -- the 3-row serpentine, zone labels, cars in transit.
+- `02-operator.png` -- ST-01, live SPC verdict, handover checklist.
+- `03-floor-supervisor.png` -- live alert queue (CAR-00000 correctly
+  flagged high-risk en route to ST-16, matching the seeded scenario).
+- `04-plant-manager.png` -- weekly defect-rate/rework/root-cause report
+  (ST-16/26/42 fail rates, ST-02 leading recurring root causes -- same
+  seeded torque-drift/unflagged-handover data every earlier task verified
+  against).
+- `05-leadership.png` -- real cost/value-add ROI numbers, ST-02 ranking
+  first among retrofit candidates (consistent with Plant Manager's and
+  Task 7's own findings, not a coincidence -- same underlying trace data).
+- `06-builder.png` -- the node-graph canvas, spawn tray bottom-right,
+  save/activate panel.
+
+### Merge
+
+`main` had not moved since `feat/ui-overhaul` branched from it
+(`git merge-base main feat/ui-overhaul` == `main`'s own tip, `01bd81f`) --
+a clean fast-forward, zero conflicts, nothing to resolve. Merged and
+pushed to `origin/main` at `3dfa1f8`.
+
+### What landed, all nine tasks
+
+1. Playwright harness -- 8 initial smoke tests, one (spawn tray) left
+   deliberately failing and documented until Task 8 could close it.
+2. Replay/Play bug -- leading suspected cause (multi-worker `AppState`
+   global) addressed defensively (`render.yaml` pins `--workers 1`,
+   documented inline); a real, distinct, *confirmed* bug (RED/
+   NOT_YET_REPORTING conflation) found and fixed alongside it.
+3. Serpentine layout -- real 3-row S-shaped plant footprint replacing the
+   328m straight ruler; three golden artifacts regenerated with approval.
+4. Design tokens -- single source of truth (`styles/tokens.ts`) replacing
+   a hand-synced JS/CSS pair.
+5. 3D Mirror rebuild -- per `DESIGN.md`; real car-click raycasting bug
+   (stale `InstancedMesh.boundingSphere`) diagnosed and fixed.
+6. Role views -- Operator/Floor Supervisor/Plant Manager rebuilt on real
+   backend logic (Act/Trace stood up from unregistered stub routers); a
+   real seek/snapshot-staleness bug and a real per-request perf issue
+   found and fixed along the way.
+7. Leadership ROI -- real cost/value-add metrics and a data-backed sensor-
+   retrofit ranking; no fabricated dollar figure.
+8. Node-graph Builder canvas -- full React Flow rebuild; a real
+   `remove_station` geometry bug found and fixed; closes the Task-1 spawn-
+   tray gap plus three new Playwright tests.
+9. Final sweep -- this section.
+
+### What didn't land, and why
+
+- **Task 2's leading root cause was never independently confirmed.** No
+  Render production logs were available in this offline session, so the
+  multi-worker-global theory got a defensive fix (`--workers 1`, with an
+  inline comment explaining exactly why raising it isn't safe without
+  moving `AppState` out of an in-process global first) but not a
+  postmortem-grade confirmation. If the original symptom (replay looking
+  stuck) recurs in production, that pin is the first thing to double-
+  check is actually in effect, and Render's own logs are the next place
+  to look -- alternative #2 (idle-throttling of the background asyncio
+  task) was never ruled out either, for the same reason.
+- **The `NOTES-OVERNIGHT.md` diagnosis block this replaces was stale and
+  self-contradicting**, caught while writing this section: it claimed
+  "`render.yaml`'s `startCommand` doesn't set `--workers`", written
+  before Task 2's own fix landed and never updated after -- `render.yaml`
+  has pinned `--workers 1` since Task 2. Corrected here rather than left
+  to mislead the next reader.
+- **The RunData/build_features scan-cost item** (see its own section
+  below) -- explicitly out of scope for every task that touched adjacent
+  code, including this one.
+
+### Golden files regenerated (all, with approval shown first each time)
+
+1. `tests/golden/config/example_42_after_insert_at_17.yaml` (Task 3) --
+   turned out self-consistent for free, since `insert_station`'s midpoint
+   math keeps the same real-geometry invariant automatically.
+2. `tests/golden/datagen`'s `ground_truth.json`, `backend/data/runs/
+   default_400_car_run/{telemetry,events,inspection}.csv` +
+   `ground_truth.json`, and `data/models/risk_v1` (Task 3) -- the
+   serpentine layout changes segment distances, which changes every
+   downstream transit-time timestamp in any run generated over
+   `example_42.yaml`. Diff-reviewed before finalizing: only timestamps
+   shifted; every defect id/mechanism/station/outcome is unchanged.
+   `risk_v1` came back byte-identical on retrain (its features are all
+   relative z-scores, not absolute timing).
+
+### Approved contract breaks (all, "tests are the spec, stop and ask" honored each time)
+
+1. Task 2: `SensorHealth.NOT_YET_REPORTING` added; the existing
+   `test_station_without_sensors_reports_not_applicable_never_red`
+   assertion widened to include it.
+2. Task 6: Plant Manager's `line_state` field and the live `LineSummary`
+   removed (Task 6 is explicit that Plant Manager is weekly, not live);
+   `test_plant_manager_view_includes_summary_counts` updated accordingly.
+3. Task 7: `LineSummary`/`_summarize` deleted outright as the now-fully-
+   dead code that change left behind.
+4. Task 8: the Builder's move-up endpoint used to hard-reject moving a
+   station into the first position; `prepend_station` now makes it work,
+   and the two tests that asserted the old 400 were updated to assert
+   success instead.
+
+### What to check by eye before trusting the merge
+
+- `screenshots/06-builder.png`: the zone-identity stripe on each node is
+  real but subtle at the zoom level 42+ stations forces `fitView` down
+  to -- worth a live zoom-in to confirm the three zone colours (steel-
+  blue/violet/bronze) actually read as distinct, not just "different
+  greys" on your monitor.
+- The Mirror's beacon-glow fault treatment (Task 5's signature shot) isn't
+  in any of the six screenshots -- none was captured mid-fault. Worth one
+  manual look at a station in FAULT state before calling Task 5 visually
+  done.
+- `render.yaml`'s `ALLOWED_ORIGIN` env var is `sync: false` (Render
+  prompts for it, not stored here) -- confirm it's actually set to the
+  real deployed frontend URL before relying on a production deploy; it
+  was never exercised in this local-only session.
+- `data/models/risk_v1` is deliberately committed, not gitignored (checked
+  directly: `.gitignore` excludes `backend/data/models/*` generally but
+  carves out `!backend/data/models/risk_v1/`), so Task 3's retrain landing
+  byte-identical to what was already committed is exactly why the merge
+  diff shows zero changes to it -- nothing to double-check there, this
+  bullet is here only because an earlier draft of this section guessed
+  wrong about its gitignore status before checking.
+
+### Two still-open items, flagged so they don't get lost
+
+Both trace back to the same original pre-overnight ask ("fix car-click
+raycasting + look at scan cost"). The raycasting half was resolved as a
+side effect of Task 5's Mirror rebuild. The scan-cost half was never
+fully closed -- Task 6 found and fixed *one* instance of it, and in
+writing this section I read the actual code behind both remaining call
+sites to check whether they're the same problem or two:
+
+- **`engine.current_state()`'s per-tick scan** (`replay/engine.py:47`):
+  calls `RunData.sensor_is_reporting` / `machine_is_maintained` /
+  `car_at_station_at` / `buffer_depth_at` / `latest_readings_at` once per
+  station, every tick. All five of those methods were the exact ones
+  Task 6 rewrote to use the new `_telemetry_by_station`/`_events_by_station`
+  pre-grouped dicts -- so this path already benefits from that fix. Its
+  remaining cost (Task 6 measured ~0.6-0.9s still going into a Floor
+  Supervisor request after the fix, down from ~2.9s) is most likely each
+  accessor still filtering *within* its now-smaller per-station slice by
+  "timestamp <= now" from scratch on every call -- an O(rows-so-far) cost
+  that grows as a run progresses, not yet indexed by time the way it's
+  now indexed by station.
+- **`predict/risk.py`'s `build_features`** (line 105): a completely
+  different function, operating on `GenealogyStore` (built once at
+  'load' time) via `_history_for_station`/`_shift_changes_for_station`,
+  not on `RunData` at all. Task 6's fix never touched this path -- it
+  wasn't even in the same module.
+
+**Verdict: mechanically two problems, not one**, despite sharing a
+family resemblance (both are "re-scan a growing history on every call").
+They live in different modules, read different data structures, and
+Task 6's fix demonstrably helped one and could not have touched the
+other. That said, this is a code-reading conclusion, not a fresh
+profiling run -- nobody has re-measured `current_state()`'s or
+`build_features`'s actual cost against a real run since Task 6's fix
+landed, so treat "not yet indexed by time" as a hypothesis worth
+confirming with a profiler before spending effort on a fix, not a
+confirmed root cause the way Task 6's own finding was.
