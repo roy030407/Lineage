@@ -146,36 +146,59 @@ and a lit beacon beam is legible in a screenshot, a demo video, or a
   "Following CAR-XXXX · Stop" indicator becomes visible so the state is never
   invisible, with a way back to free orbit.
 
-## Builder layout (reference for Task 8 — node-graph canvas)
+## Builder layout (Task 8 — node-graph canvas, as built)
+
+The spawn tray sits bottom-right, not left as first sketched here — an
+explicit override given while building Task 8. Everything else below
+matches what actually shipped in `frontend/src/builder/graph/`.
 
 ```
 +----------------------------------------------------------------------------+
 | [Plant Name]                [Role: Builder v]        [Close Builder]       |
-+---------------+--------------------------------------------+--------------+
-| SPAWN TRAY    |  CANVAS                                     | PROPERTIES   |
-| [Body]        |   BODY row:  [node]--[node]--[node]--...    | (selected    |
-| [Paint]       |                  |                          |  node's      |
-| [Final]       |   PAINT row: [node]--[node]--...             |  form: id,   |
-| [Manual var.] |                  |                          |  zone,       |
-|               |   FINAL row: [node]--[node]--...             |  sensors,    |
-| (drag onto    |                                              |  machine,    |
-|  canvas to    |  connectors = conveyor segments, drawn        |  cost/value) |
-|  insert)      |  between adjacent nodes                      |              |
-|               |                                              | [Save]       |
-+---------------+--------------------------------------------+--------------+
++------------------------------------------------------------------+---------+
+| [Edit envelope]                                                  | SAVE &  |
+|                                                                   | ACTIVATE|
+|   BODY row:  [node]--[node]--[node]--...                         | panel   |
+|                  |                                                +---------+
+|   PAINT row: [node]--[node]--...            (selecting a node    | PROPS   |
+|                  |                            opens a properties |(sensors,|
+|   FINAL row: [node]--[node]--...              panel here instead |distance,|
+|                                                of this save panel)|baseline)|
+|  connectors = conveyor segments; click one to cut it              +---------+
+|                                                        +--------------------+
+|                                                        | SPAWN TRAY         |
+|                                                        | [Body][Paint]      |
+|                                                        | [Final][Manual var]|
+|                                                        | (drag onto a link  |
+|                                                        |  to insert, or an  |
+|                                                        |  end to append)    |
++--------------------------------------------------------+--------------------+
 ```
+
+The properties panel and the save panel share the same top-right corner
+(only one is ever relevant at a time — no node selected vs. one selected)
+and the properties panel is deliberately height-capped, not stretched to
+the bottom, so it can never cover the spawn tray sitting in that same
+bottom-right corner.
 
 ### Node anatomy
 
 ```
 +---------------------------+
-| ▌ ST-17                   |   <- left edge stripe = zone colour band
-| Paint Station 17           |      (reuses row-separation logic from the
-| ●sensor  ●machine          |      Mirror, not a new hue)
-| instrumented                |
-| o------------------------o |   <- in/out connector points, one conveyor
-+---------------------------+      segment per edge
+| ▌ Body · ST-17            |   <- left edge stripe = zone identity colour
+| Paint Station 17           |      (Task 8's own token, ZONE_TOKENS --
+| 2 sensors                  |      the Mirror's zone identity comes from
+| instrumented                |      row position, not a hue, so the flat
+| o------------------------o |      2D canvas needed one of its own)
++---------------------------+
 ```
+
+A manual station's sensor line reuses `SENSOR_HEALTH_TOKENS.not_applicable`
+(the ring glyph, "No Sensor") — that token's real, already-true meaning at
+config time, not a live-health claim the Builder has no run to back up. An
+instrumented/mixed station just states its sensor count as plain text
+instead, for the same reason: no draft has live telemetry to honestly call
+"Reporting".
 
 ## Car-click raycasting bug — diagnosis (Task 5)
 

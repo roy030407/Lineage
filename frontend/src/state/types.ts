@@ -95,6 +95,14 @@ export interface LineSpec {
   environment_envelope: EnvironmentEnvelope;
 }
 
+export interface RunToLearnRequest {
+  accuracy_classes: Record<string, string>;
+  idle_nominal: Record<string, number>;
+  loaded_nominal: Record<string, number>;
+  sample_count?: number;
+  seed?: number | null;
+}
+
 // --- replay -------------------------------------------------------------
 
 export type SensorHealth = "green" | "red" | "not_yet_reporting" | "not_applicable";

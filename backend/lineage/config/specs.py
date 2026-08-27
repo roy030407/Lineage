@@ -303,8 +303,13 @@ class LineSpec(BaseModel):
 
     def remove_station(self, station_id: str) -> "LineSpec":
         """Remove the station with id `station_id`, rejoining its neighbours and
-        recomputing the conveyor distance between them as the sum of the two
-        segments it used to sit between."""
+        recomputing the conveyor distance between them as the actual Euclidean
+        distance between their (unchanged) coordinates -- not the sum of the
+        two segments it used to sit between. Those agree when the removed
+        station was collinear with its neighbours, but a real, found bug: they
+        diverge at any turn (a zone-transition corner, for instance), where
+        the sum overstates the straight-line distance between two points that
+        never moved."""
         stations = list(self.stations)
         idx = next((i for i, s in enumerate(stations) if s.id == station_id), None)
         if idx is None:
@@ -330,11 +335,16 @@ class LineSpec(BaseModel):
                 raise ValueError(
                     f"missing conveyor segment(s) around {station_id!r} to rejoin neighbours"
                 )
+            prev_coord = self.layout.coordinate_for(prev_station.id)
+            next_coord = self.layout.coordinate_for(next_station.id)
+            distance = (
+                (next_coord.x_m - prev_coord.x_m) ** 2 + (next_coord.y_m - prev_coord.y_m) ** 2
+            ) ** 0.5
             segments.append(
                 ConveyorSegment(
                     from_station_id=prev_station.id,
                     to_station_id=next_station.id,
-                    distance_m=seg_in.distance_m + seg_out.distance_m,
+                    distance_m=distance,
                 )
             )
         # if removed was the first or last station, the single adjoining segment is
@@ -353,6 +363,165 @@ class LineSpec(BaseModel):
             stations=new_stations,
             layout=new_layout,
             environment_envelope=self.environment_envelope,
+        )
+
+    def prepend_station(self, spec: StationSpec) -> "LineSpec":
+        """Insert `spec` before the current first station, extrapolating the
+        new layout coordinate and conveyor distance backward along the
+        line's existing direction -- insert_station has no equivalent
+        (after_station_id=None there only ever means tail-append; there's no
+        "insert at head" short of this)."""
+        stations = list(self.stations)
+        if len(stations) < 2:
+            raise ValueError(
+                "cannot prepend: need at least 2 existing stations to extrapolate "
+                "a layout direction"
+            )
+
+        first, second = stations[0], stations[1]
+        first_coord = self.layout.coordinate_for(first.id)
+        second_coord = self.layout.coordinate_for(second.id)
+        dx = first_coord.x_m - second_coord.x_m
+        dy = first_coord.y_m - second_coord.y_m
+        new_coord = StationCoordinate(
+            station_id=spec.id, x_m=first_coord.x_m + dx, y_m=first_coord.y_m + dy
+        )
+
+        first_segment = self.layout.segment_between(first.id, second.id)
+        if first_segment is None:
+            raise ValueError(
+                f"no conveyor segment between {first.id!r} and {second.id!r} to "
+                "extrapolate head-prepend distance from"
+            )
+        new_segment = ConveyorSegment(
+            from_station_id=spec.id, to_station_id=first.id, distance_m=first_segment.distance_m
+        )
+
+        coords = [*self.layout.coordinates, new_coord]
+        segments = [*self.layout.segments, new_segment]
+
+        new_stations = [spec, *stations]
+        new_stations = [
+            s.model_copy(update={"sequence_index": i}) for i, s in enumerate(new_stations)
+        ]
+
+        new_layout = LayoutSpec(coordinates=coords, segments=segments)
+        return LineSpec(
+            plant_name=self.plant_name,
+            site=self.site,
+            stations=new_stations,
+            layout=new_layout,
+            environment_envelope=self.environment_envelope,
+        )
+
+    def set_segment_distance(
+        self, from_station_id: str, to_station_id: str, distance_m: float
+    ) -> "LineSpec":
+        """Rescales the segment from `from_station_id` to `to_station_id` to
+        `distance_m` by moving `to_station_id` along the segment's existing
+        direction vector -- distance_m is authoritative, the coordinate is
+        derived from it, never the other way, so the geometry invariant holds
+        by construction rather than needing a separate check.
+
+        Every station from `to_station_id` onward (its whole downstream
+        chain) is translated by the same delta this produces, not just
+        `to_station_id` itself -- moving one station alone would silently
+        change every *other* segment's real distance out from under its
+        still-unchanged distance_m the moment the path isn't perfectly
+        straight, exactly the kind of drift this method exists to prevent.
+        A rigid translation preserves every pairwise distance within the
+        translated group, so only the one edited segment's distance
+        actually changes.
+        """
+        if distance_m <= 0:
+            raise ValueError("distance_m must be > 0")
+        segment = self.layout.segment_between(from_station_id, to_station_id)
+        if segment is None:
+            raise ValueError(
+                f"no conveyor segment between {from_station_id!r} and {to_station_id!r}"
+            )
+
+        from_coord = self.layout.coordinate_for(from_station_id)
+        to_coord = self.layout.coordinate_for(to_station_id)
+        dx = to_coord.x_m - from_coord.x_m
+        dy = to_coord.y_m - from_coord.y_m
+        current_length = (dx**2 + dy**2) ** 0.5
+        if current_length == 0:
+            raise ValueError(
+                f"cannot rescale a zero-length segment between {from_station_id!r} "
+                f"and {to_station_id!r}"
+            )
+        scale = distance_m / current_length
+        new_to_x = from_coord.x_m + dx * scale
+        new_to_y = from_coord.y_m + dy * scale
+        delta_x = new_to_x - to_coord.x_m
+        delta_y = new_to_y - to_coord.y_m
+
+        to_idx = next(i for i, s in enumerate(self.stations) if s.id == to_station_id)
+        downstream_ids = {s.id for s in self.stations[to_idx:]}
+
+        coords = [
+            (
+                StationCoordinate(station_id=c.station_id, x_m=c.x_m + delta_x, y_m=c.y_m + delta_y)
+                if c.station_id in downstream_ids
+                else c
+            )
+            for c in self.layout.coordinates
+        ]
+        segments = [
+            (
+                ConveyorSegment(
+                    from_station_id=from_station_id,
+                    to_station_id=to_station_id,
+                    distance_m=distance_m,
+                )
+                if s is segment
+                else s
+            )
+            for s in self.layout.segments
+        ]
+
+        new_layout = LayoutSpec(coordinates=coords, segments=segments)
+        return LineSpec(
+            plant_name=self.plant_name,
+            site=self.site,
+            stations=self.stations,
+            layout=new_layout,
+            environment_envelope=self.environment_envelope,
+        )
+
+    def replace_station(self, station_id: str, updated: StationSpec) -> "LineSpec":
+        """Swaps in `updated` for the station currently at `station_id`,
+        keeping its position and the rest of the line's topology/layout
+        untouched -- for editing a station's own fields (sensors,
+        acquisition_mode, commissioning_baseline, ...) without an
+        insert/remove/move. `updated.id` must still equal `station_id`;
+        renaming a station through this method isn't supported. Constructs a
+        fresh LineSpec so every cross-station validator (duplicate sensor
+        ids, etc.) re-runs, not just `updated`'s own."""
+        idx = next((i for i, s in enumerate(self.stations) if s.id == station_id), None)
+        if idx is None:
+            raise ValueError(f"unknown station_id {station_id!r}")
+        if updated.id != station_id:
+            raise ValueError(f"replace_station cannot rename {station_id!r} to {updated.id!r}")
+
+        new_stations = list(self.stations)
+        new_stations[idx] = updated.model_copy(update={"sequence_index": idx})
+        return LineSpec(
+            plant_name=self.plant_name,
+            site=self.site,
+            stations=new_stations,
+            layout=self.layout,
+            environment_envelope=self.environment_envelope,
+        )
+
+    def with_environment_envelope(self, envelope: EnvironmentEnvelope) -> "LineSpec":
+        return LineSpec(
+            plant_name=self.plant_name,
+            site=self.site,
+            stations=self.stations,
+            layout=self.layout,
+            environment_envelope=envelope,
         )
 
     def to_yaml(self) -> str:

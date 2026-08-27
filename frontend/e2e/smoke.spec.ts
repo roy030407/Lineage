@@ -251,8 +251,156 @@ test.describe("role views render their own distinctive content", () => {
 test("Builder canvas mounts and the spawn tray is present", async ({ page }) => {
   await page.goto("/");
   await page.click('button:has-text("Builder")');
-  // Deliberately checks for the node-graph canvas's spawn tray specifically
-  // (Task 8), not today's form-based builder -- expected to fail until that
-  // lands; see NOTES-OVERNIGHT.md.
+  // The node-graph canvas's spawn tray (Task 8), not the old form-based
+  // builder -- this was the long-standing 9th test failing since the
+  // harness was built; see NOTES-OVERNIGHT.md.
   await expect(page.getByText(/spawn tray/i)).toBeVisible();
+});
+
+test.describe("Builder node-graph canvas (Task 8)", () => {
+  interface DraftLine {
+    stations: { id: string }[];
+  }
+
+  async function currentDraft(page: import("@playwright/test").Page): Promise<DraftLine> {
+    return page.evaluate(() => fetch("/api/builder/draft").then((r) => r.json()));
+  }
+
+  // Native HTML5 drag-and-drop can't be driven through Playwright's
+  // mouse-based drag helpers (there is no real OS-level drag under
+  // automation) -- dispatching the actual dragstart/dragover/drop sequence
+  // with a real DataTransfer is the standard workaround, and it exercises
+  // the app's real onDragStart/onDrop handlers, not a mocked shortcut.
+  async function dragTrayTemplateOnto(
+    page: import("@playwright/test").Page,
+    templateLabel: string,
+    point: { x: number; y: number },
+  ): Promise<void> {
+    await page.evaluate(
+      ({ templateLabel, point }) => {
+        const tiles = Array.from(document.querySelectorAll('[draggable="true"]'));
+        const tile = tiles.find((el) => el.textContent?.trim() === templateLabel);
+        if (!tile) throw new Error(`tray tile not found: ${templateLabel}`);
+        const dt = new DataTransfer();
+        tile.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));
+        const target = document.elementFromPoint(point.x, point.y);
+        if (!target) throw new Error("no element at drop point");
+        target.dispatchEvent(
+          new DragEvent("dragover", {
+            bubbles: true,
+            cancelable: true,
+            dataTransfer: dt,
+            clientX: point.x,
+            clientY: point.y,
+          }),
+        );
+        target.dispatchEvent(
+          new DragEvent("drop", {
+            bubbles: true,
+            cancelable: true,
+            dataTransfer: dt,
+            clientX: point.x,
+            clientY: point.y,
+          }),
+        );
+      },
+      { templateLabel, point },
+    );
+  }
+
+  async function nodeRect(
+    page: import("@playwright/test").Page,
+    stationId: string,
+  ): Promise<{ left: number; right: number; top: number; height: number }> {
+    const locator = page.locator(`[data-testid="rf__node-${stationId}"]`);
+    const box = await locator.boundingBox();
+    if (!box) throw new Error(`node not found or not visible: ${stationId}`);
+    return { left: box.x, right: box.x + box.width, top: box.y, height: box.height };
+  }
+
+  test("tray -> insert mid-line: station count increments and lands between the two targeted stations", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.click('button:has-text("Builder")');
+    await expect(page.getByText(/spawn tray/i)).toBeVisible();
+
+    const before = await currentDraft(page);
+    const upstreamId = before.stations[0].id;
+    const downstreamId = before.stations[1].id;
+
+    const a = await nodeRect(page, upstreamId);
+    const b = await nodeRect(page, downstreamId);
+    // Averages both rects' row centres, not just A's -- upstream/downstream
+    // can sit in different zone rows (a zone-transition edge), where the
+    // real link is a diagonal, not a horizontal line at A's own height.
+    const midpoint = {
+      x: (a.right + b.left) / 2,
+      y: (a.top + a.height / 2 + b.top + b.height / 2) / 2,
+    };
+
+    await dragTrayTemplateOnto(page, "Body", midpoint);
+    await expect(page.getByRole("dialog", { name: "Create station" })).toBeVisible();
+
+    const newId = `PW-INSERT-${Date.now()}`;
+    await page.fill('input[placeholder="ST-99"]', newId);
+    // The "Body" template defaults to instrumented, which requires at least
+    // one sensor (validateSensorsMatchAcquisitionMode) -- add the blank one
+    // the form offers so the client-side check doesn't block submission.
+    await page.click('button:has-text("Add sensor")');
+    await page.fill('input[placeholder="sensor id"]', `${newId}-TQ`);
+    await page.click('button:has-text("Create station")');
+    await expect(page.getByRole("dialog", { name: "Create station" })).not.toBeVisible();
+
+    const after = await currentDraft(page);
+    expect(after.stations.length).toBe(before.stations.length + 1);
+    const ids = after.stations.map((s) => s.id);
+    const upstreamIndex = ids.indexOf(upstreamId);
+    expect(ids[upstreamIndex + 1]).toBe(newId);
+    expect(ids[upstreamIndex + 2]).toBe(downstreamId);
+  });
+
+  test("add a sensorless manual station without it erroring", async ({ page }) => {
+    await page.goto("/");
+    await page.click('button:has-text("Builder")');
+    await expect(page.getByText(/spawn tray/i)).toBeVisible();
+
+    const before = await currentDraft(page);
+    const lastId = before.stations[before.stations.length - 1].id;
+    const last = await nodeRect(page, lastId);
+    const appendPoint = { x: last.right, y: last.top + last.height / 2 };
+
+    await dragTrayTemplateOnto(page, "Manual variant", appendPoint);
+    await expect(page.getByRole("dialog", { name: "Create station" })).toBeVisible();
+
+    const newId = `PW-MANUAL-${Date.now()}`;
+    await page.fill('input[placeholder="ST-99"]', newId);
+    // Deliberately never touches the sensors list -- a manual station with
+    // zero sensors is the whole point of this test, not an error state.
+    await page.click('button:has-text("Create station")');
+
+    await expect(page.getByRole("dialog", { name: "Create station" })).not.toBeVisible();
+    await expect(page.getByText(/failed:/i)).toHaveCount(0);
+
+    const after = await currentDraft(page);
+    expect(after.stations.length).toBe(before.stations.length + 1);
+    expect(after.stations[after.stations.length - 1].id).toBe(newId);
+  });
+
+  test("click a link to cut it", async ({ page }) => {
+    await page.goto("/");
+    await page.click('button:has-text("Builder")');
+    await expect(page.getByText(/spawn tray/i)).toBeVisible();
+
+    const before = await currentDraft(page);
+    const upstreamId = before.stations[0].id;
+    const downstreamId = before.stations[1].id;
+
+    await page.locator(`[data-testid="rf__edge-${upstreamId}->${downstreamId}"]`).click();
+
+    const after = await currentDraft(page);
+    expect(after.stations.length).toBe(before.stations.length - 1);
+    expect(after.stations.map((s) => s.id)).not.toContain(downstreamId);
+    expect(after.stations.map((s) => s.id)).toContain(upstreamId);
+  });
 });

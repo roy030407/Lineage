@@ -3,7 +3,7 @@
 
 import { useEffect } from "react";
 
-import { StationBuilder } from "./builder/StationBuilder";
+import { BuilderCanvas } from "./builder/graph/BuilderCanvas";
 import { CarPanel } from "./panels/CarPanel";
 import { StationPanel } from "./panels/StationPanel";
 import { Scene } from "./scene/Scene";
@@ -32,7 +32,7 @@ export default function App() {
       <TopBar />
       <div style={{ position: "relative", flex: 1, minHeight: 0, overflowY: "auto" }}>
         {builderOpen ? (
-          <StationBuilder />
+          <BuilderCanvas />
         ) : (
           <>
             {role === "mirror" && (

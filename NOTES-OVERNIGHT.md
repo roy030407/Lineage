@@ -545,9 +545,118 @@ Verified: `pytest -q` 152/152 (+3 new tests), `ruff check .` clean,
 `tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
 `npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
 
+## Task 8 — Node-graph Builder canvas ✅
+
+Backend groundwork first, before any UI: `LineSpec` gained four new
+mutation primitives in `config/specs.py`, each constructing a fresh
+`LineSpec` via the class constructor (never `model_copy(update=...)`,
+which silently skips Pydantic v2 validators even with
+`revalidate_instances="always"` — that setting only governs re-validation
+when a model is *nested as a field*, not what `model_copy` itself does):
+
+- `prepend_station`: inserts before the current first station,
+  extrapolating both the new layout coordinate and the new conveyor
+  segment's distance backward along the line's existing direction —
+  `insert_station` has no "insert at head" (its `after_station_id=None`
+  always means tail-append).
+- `set_segment_distance`: rescales one segment to an authoritative
+  `distance_m`, deriving the coordinate from the distance (never the
+  reverse). Rigidly translates the *entire downstream station chain* by
+  the resulting delta, not just the one adjacent station — moving only
+  the adjacent station would silently invalidate the next segment's own
+  distance the moment the path isn't perfectly straight. Verified against
+  both a synthetic L-shaped fixture and the real serpentine
+  `example_42.yaml`.
+- `replace_station`: swaps a station's own fields (sensors, baseline, ...)
+  in place, keeping position/topology untouched, re-validating the whole
+  line so cross-station invariants (duplicate sensor ids, etc.) still run.
+- `with_environment_envelope`: replaces the line-wide envelope.
+
+Real bug found and fixed along the way, in the *pre-existing*
+`remove_station`: it summed the two adjacent segments' distances to
+rejoin the gap, correct only when the removed station was collinear with
+its neighbours — it silently overstated the true distance at any turn (a
+zone-transition corner). Fixed to compute the actual Euclidean distance
+between the two surviving neighbours' unchanged coordinates. Confirmed
+empirically against `example_42.yaml`: removing a station at a real
+corner produced exactly one geometry-invariant violation under the old
+code, zero under the fix; a straight-run removal was unaffected either
+way, and the existing collinear-fixture test kept passing unchanged (a
+correctness fix, not a behaviour change any test asserted — no "stop and
+ask" gate applied).
+
+New `api/routes/builder.py` endpoints wire all of this up: `POST
+.../stations/prepend`, `PUT .../stations/{id}/sensors`, `PUT
+.../stations/{id}/commissioning_baseline`, `PUT .../segments/distance`,
+`PUT .../environment_envelope`, and `POST .../commissioning/run_to_learn`
+(a standalone endpoint, independent of any draft). `run_to_learn` lives in
+a new `config/commissioning.py`: given a rough nominal idle/loaded centre
+per quantity and each sensor's own `accuracy_class`, it draws real
+`numpy` random samples and computes genuine mean/std from them — a
+simulated capture, clearly labelled as such, but never a fabricated
+number.
+
+One existing-test-breaking change, flagged and approved before
+implementing (per the "tests are the spec, stop and ask" rule): the
+Builder's move-up endpoint used to hard-reject moving a station into the
+first position at all (`insert_station` has no "insert at head").
+`prepend_station` now makes that actually work — approved, and the two
+tests that asserted the old 400 (`test_move_station_up_and_down`,
+`test_move_first_station_up_returns_400`) were updated to assert the new
+success behaviour instead, not silently patched around.
+
+Frontend: `@xyflow/react` (approved new dependency) replaces the old
+form-based Builder entirely — `StationBuilder.tsx`/`StationBuilderForm.tsx`
+deleted, not left as dead code. New `builder/graph/` module: `StationNode`
+(zone-identity stripe via a new `ZONE_TOKENS` set — the Mirror's zone
+identity comes from row position, not a hue, so the flat 2D canvas needed
+its own token; sensor indicator reuses `SENSOR_HEALTH_TOKENS.not_applicable`
+for "no sensor" specifically, since that's its real documented meaning,
+never a live "Reporting" claim a config-time draft has no run to back
+up), `SpawnTray` (bottom-right per an explicit live override of
+`DESIGN.md`'s original left-tray sketch, updated there to match),
+`StationCreateModal`, `PropertiesPanel` (sensors/distance/baseline),
+`CommissioningWizard` (enter-known-values and run-to-learn paths), and
+`EnvironmentEnvelopeEditor`. Drag-from-tray-onto-a-link inserts (splitting
+that segment); drag onto either end prepends/appends; dragging between
+two nodes' ports reorders by composing the already-tested remove +
+insert-after primitives client-side (no new backend endpoint needed);
+clicking a link cuts it by removing its downstream station. `findDropTarget`
+(pure hit-testing against each link's real endpoint positions, tray-drop
+resolution) has its own `vitest` suite.
+
+Real, found-in-testing bug: `fitView`'s default `minZoom` (0.5) can't
+fit all 42 stations in a normal viewport, leaving most of them
+positioned off-screen — not just a test inconvenience but a genuine "half
+the line is invisible" UX bug. Fixed by lowering `minZoom` so `fitView`
+can actually zoom out far enough. Also fixed: the properties panel used
+to stretch full-height, covering the spawn tray (same bottom-right
+corner) whenever a node was selected — now height-capped instead.
+
+Save writes the new `LineSpec` to disk (unchanged `POST .../save`), then a
+new `POST .../activate` swaps it in as `state.line` — the Mirror's actual
+live line — resetting every cache that was built against the *previous*
+line (`engine`, `genealogy_store`, `prediction_ledger`, `trace_results`,
+`act_proposals`, `issue_assignments`, `snapshot_history`), mirroring
+exactly what `mirror.py`'s own `load` action already does when swapping
+runs. `audit_ledger` is deliberately left alone, same reasoning as `load`.
+
+This closes the pre-existing Playwright spawn-tray gap (the 9th test,
+failing since the harness was built) and adds three more: tray → insert
+mid-line lands the new station at the correct sequence position, cutting
+a link, and adding a sensorless manual station without it erroring.
+Native HTML5 drag-and-drop isn't drivable through Playwright's
+mouse-based helpers (no real OS-level drag under automation), so these
+dispatch the actual `dragstart`/`dragover`/`drop` sequence with a real
+`DataTransfer` — exercising the app's real handlers, not a shortcut.
+
+Verified: `pytest -q` 182/182 (+18 new tests: `test_config.py` 32/32,
+`test_api_builder.py` 30/30), `ruff check .` clean, `tsc --noEmit` clean,
+`vitest run` 6/6 (+5 new), production build succeeds, `npx playwright
+test` 12/12 (the long-standing 9th test now passes, +3 new).
+
 ## Remaining tasks
 
-8. Node-graph Builder canvas
 9. Final sweep
 
 ## Diagnosis on record (Task 2, not yet fixed)

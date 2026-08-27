@@ -11,7 +11,7 @@
 // CSS custom properties from the values here at startup (called once from
 // main.tsx), so there is exactly one place any of these numbers live.
 
-import type { MachineHealth, RiskLevel, SensorHealth, SPCState } from "../state/types";
+import type { MachineHealth, RiskLevel, SensorHealth, SPCState, Zone } from "../state/types";
 
 export const PALETTE = {
   foundry: "#22231f", // base canvas
@@ -21,6 +21,9 @@ export const PALETTE = {
   beaconAmber: "#e8a33d",
   beaconRed: "#c43b3b",
   steelNeutral: "#7a8380", // no signal / not applicable -- shape carries the meaning, not a new hue
+  zoneBody: "#5b7a9a", // muted steel-blue -- Builder node header stripes only, never a status colour
+  zonePaint: "#8a6a9e", // muted plume/violet
+  zoneFinal: "#a98249", // muted bronze
 } as const;
 
 export const FONT_FAMILIES = {
@@ -106,6 +109,17 @@ export const RISK_LEVEL_TOKENS: Record<RiskLevel, StatusToken> = {
   medium: { color: PALETTE.beaconAmber, shape: "triangle", label: "Medium Risk" },
   high: { color: PALETTE.beaconRed, shape: "diamond", label: "High Risk" },
   unknown_risk: { color: PALETTE.steelNeutral, shape: "ring", label: "Unknown Risk" },
+};
+
+// Zone identity, not status -- the Mirror separates zones by real geometry
+// (each its own conveyor row); the Builder's flat 2D canvas has no
+// equivalent row separation to lean on, so each zone gets its own header
+// stripe colour instead. Deliberately outside the shape vocabulary above:
+// this is "which zone", never "how healthy".
+export const ZONE_TOKENS: Record<Zone, { color: string; label: string }> = {
+  body: { color: PALETTE.zoneBody, label: "Body" },
+  paint: { color: PALETTE.zonePaint, label: "Paint" },
+  final: { color: PALETTE.zoneFinal, label: "Final" },
 };
 
 function kebabCase(camel: string): string {

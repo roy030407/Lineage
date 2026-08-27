@@ -4,8 +4,11 @@
 // so paths stay relative exactly as before: the vite dev server proxies
 // /api to the backend locally, no CORS handling needed there either way.
 import type {
+  AcquisitionMode,
   AuditRecord,
   CarTwin,
+  CommissioningBaseline,
+  EnvironmentEnvelope,
   FloorSupervisorView,
   LeadershipView,
   LedgerMetrics,
@@ -15,6 +18,8 @@ import type {
   Proposal,
   ReplayControlRequest,
   RunSummary,
+  RunToLearnRequest,
+  SensorSpec,
   StationSpec,
   TrendState,
 } from "./types";
@@ -41,6 +46,22 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
     const detail = await response.json().catch(() => null);
     throw new Error(
       `POST ${url} failed: ${response.status} ${detail?.detail ?? response.statusText}`,
+    );
+  }
+  return (await response.json()) as T;
+}
+
+async function putJson<T>(path: string, body: unknown): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(
+      `PUT ${url} failed: ${response.status} ${detail?.detail ?? response.statusText}`,
     );
   }
   return (await response.json()) as T;
@@ -115,6 +136,57 @@ export function moveBuilderStation(
 
 export function saveBuilderDraft(filename: string): Promise<{ ok: boolean; filename: string }> {
   return postJson<{ ok: boolean; filename: string }>("/api/builder/save", { filename });
+}
+
+export function activateBuilderDraft(): Promise<LineSpec> {
+  return postJson<LineSpec>("/api/builder/activate");
+}
+
+export function prependBuilderStation(station: StationSpec): Promise<LineSpec> {
+  return postJson<LineSpec>("/api/builder/draft/stations/prepend", { station });
+}
+
+export function updateBuilderStationSensors(
+  stationId: string,
+  sensors: SensorSpec[],
+  acquisitionMode: AcquisitionMode,
+): Promise<LineSpec> {
+  return putJson<LineSpec>(`/api/builder/draft/stations/${encodeURIComponent(stationId)}/sensors`, {
+    sensors,
+    acquisition_mode: acquisitionMode,
+  });
+}
+
+export function updateBuilderStationBaseline(
+  stationId: string,
+  baseline: CommissioningBaseline | null,
+): Promise<LineSpec> {
+  return putJson<LineSpec>(
+    `/api/builder/draft/stations/${encodeURIComponent(stationId)}/commissioning_baseline`,
+    { baseline },
+  );
+}
+
+export function updateBuilderSegmentDistance(
+  fromStationId: string,
+  toStationId: string,
+  distanceM: number,
+): Promise<LineSpec> {
+  return putJson<LineSpec>("/api/builder/draft/segments/distance", {
+    from_station_id: fromStationId,
+    to_station_id: toStationId,
+    distance_m: distanceM,
+  });
+}
+
+export function updateBuilderEnvironmentEnvelope(
+  envelope: EnvironmentEnvelope,
+): Promise<LineSpec> {
+  return putJson<LineSpec>("/api/builder/draft/environment_envelope", envelope);
+}
+
+export function runToLearn(request: RunToLearnRequest): Promise<CommissioningBaseline> {
+  return postJson<CommissioningBaseline>("/api/builder/commissioning/run_to_learn", request);
 }
 
 export function assignIssue(
