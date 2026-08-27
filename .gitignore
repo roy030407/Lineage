@@ -37,5 +37,14 @@ backend/data/models/*
 !backend/data/models/risk_v1/
 !backend/data/models/risk_v1/**
 
+# Internal working docs -- not part of what a project viewer needs; kept
+# locally, deliberately not published on GitHub.
+CLAUDE.md
+DESIGN.md
+NOTES-OVERNIGHT.md
+.claude/reviewer.md
+.claude/verify.md
+screenshots/
+
 # OS/editor
 .DS_Store
