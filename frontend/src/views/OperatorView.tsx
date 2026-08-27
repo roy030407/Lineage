@@ -1,14 +1,104 @@
 // Operator role view: exactly one station, nothing else -- the backend
 // itself only returns that one station's data (GET /api/view/operator),
 // so there is no other line-wide state available here to leak by mistake.
+// Deliberately narrow per DESIGN.md: an operator sees their own station in
+// depth (readings vs. baseline, sensor/machine/handover/calibration status,
+// a handover checklist), never the rest of the line.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { StatusBadge } from "../components/StatusBadge";
 import { getOperatorView } from "../state/api";
 import { useLineageStore } from "../state/store";
-import { MACHINE_HEALTH_TOKENS, SENSOR_HEALTH_TOKENS } from "../styles/tokens";
+import {
+  MACHINE_HEALTH_TOKENS,
+  SENSOR_HEALTH_TOKENS,
+  SPC_STATE_TOKENS,
+} from "../styles/tokens";
 import { useRolePoll } from "./useRolePoll";
+
+const CHECKLIST_ITEMS = [
+  "Confirm sensor readings are within baseline",
+  "Acknowledge any active sensor or machine alarms",
+  "Verify machine maintenance is current",
+  "Log handover notes for the next shift",
+];
+
+function checklistStorageKey(stationId: string): string {
+  return `lineage.handover-checklist.${stationId}`;
+}
+
+function loadChecklist(stationId: string): boolean[] {
+  try {
+    const raw = localStorage.getItem(checklistStorageKey(stationId));
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    if (Array.isArray(parsed) && parsed.length === CHECKLIST_ITEMS.length) {
+      return parsed as boolean[];
+    }
+  } catch {
+    // localStorage can throw (private browsing, quota) -- fall through to a
+    // fresh checklist; it still works for this session, just won't persist.
+  }
+  return CHECKLIST_ITEMS.map(() => false);
+}
+
+/** Remounted with a fresh `key` per station (see OperatorView below), so its
+ * local state never leaks between stations when the operator switches. */
+function HandoverChecklist({
+  stationId,
+  recalibrating,
+}: {
+  stationId: string;
+  recalibrating: boolean;
+}) {
+  const [checked, setChecked] = useState<boolean[]>(() => loadChecklist(stationId));
+  const wasRecalibrating = useRef(recalibrating);
+
+  useEffect(() => {
+    // A false -> true transition is a real, backend-detected handover (see
+    // SPCVerdict.recalibrating) -- the previous shift's checklist is done,
+    // reset it for whoever is coming on now, not just whenever this
+    // component happens to remount.
+    if (recalibrating && !wasRecalibrating.current) {
+      setChecked(CHECKLIST_ITEMS.map(() => false));
+    }
+    wasRecalibrating.current = recalibrating;
+  }, [recalibrating]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(checklistStorageKey(stationId), JSON.stringify(checked));
+    } catch {
+      // see loadChecklist's comment -- non-fatal if storage isn't available.
+    }
+  }, [stationId, checked]);
+
+  return (
+    <div>
+      <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
+        Handover checklist
+      </p>
+      {CHECKLIST_ITEMS.map((item, i) => (
+        <label key={item} style={{ display: "block", marginTop: "var(--space-1)" }}>
+          <input
+            type="checkbox"
+            checked={checked[i] ?? false}
+            onChange={() =>
+              setChecked((prev) => prev.map((value, index) => (index === i ? !value : value)))
+            }
+          />{" "}
+          {item}
+        </label>
+      ))}
+      <button
+        onClick={() => setChecked(CHECKLIST_ITEMS.map(() => false))}
+        style={{ marginTop: "var(--space-2)" }}
+      >
+        Reset checklist
+      </button>
+    </div>
+  );
+}
 
 export function OperatorView() {
   const lineSpec = useLineageStore((s) => s.lineSpec);
@@ -63,6 +153,20 @@ export function OperatorView() {
           <p className="eyebrow">
             Machine health: <StatusBadge token={MACHINE_HEALTH_TOKENS[view.machine_health]} />
           </p>
+          <p className="eyebrow">
+            Handover status:{" "}
+            {view.spc_verdict?.recalibrating
+              ? "Recalibrating after handover"
+              : "Settled, no active handover"}
+          </p>
+          <p className="eyebrow">
+            Calibration state:{" "}
+            {view.spc_verdict ? (
+              <StatusBadge token={SPC_STATE_TOKENS[view.spc_verdict.state]} />
+            ) : (
+              "No reading history yet"
+            )}
+          </p>
 
           <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
             Live readings
@@ -113,6 +217,12 @@ export function OperatorView() {
               No baseline commissioned
             </p>
           )}
+
+          <HandoverChecklist
+            key={view.station_id}
+            stationId={view.station_id}
+            recalibrating={view.spc_verdict?.recalibrating ?? false}
+          />
         </>
       )}
     </div>

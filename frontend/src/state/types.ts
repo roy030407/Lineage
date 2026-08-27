@@ -186,6 +186,16 @@ export type Role =
   | "leadership"
   | "prediction_ledger";
 
+export interface SPCVerdict {
+  station_id: string;
+  quantity: string;
+  state: SPCState;
+  rule_triggered: string | null;
+  confidence: number;
+  recalibrating: boolean;
+  uncertainty_band_multiplier: number;
+}
+
 export interface OperatorView {
   station_id: string;
   station_name: string;
@@ -193,6 +203,7 @@ export interface OperatorView {
   machine_health: MachineHealth;
   latest_readings: LatestReading[];
   commissioning_baseline: CommissioningBaseline | null;
+  spc_verdict: SPCVerdict | null;
 }
 
 export interface LineSummary {

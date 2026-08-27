@@ -171,6 +171,27 @@ def test_operator_view_scoped_to_one_station(tmp_path):
     assert "stations" not in body
 
 
+def test_operator_view_includes_live_spc_verdict(tmp_path):
+    """The live control/handover/calibration status added to OperatorView --
+    must be a real, evaluated verdict once telemetry exists, not merely
+    present-but-empty. ST-01 is instrumented with a real commissioning
+    baseline and no seeded defects, so once enough of the run has played,
+    its SPC verdict must be a genuine evaluation (never UNKNOWN, which would
+    mean evaluate_spc silently found nothing to score)."""
+    _setup_state(tmp_path)
+    with TestClient(create_app()) as client:
+        client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
+        for _ in range(5):
+            client.post("/api/replay/control", json={"action": "step"})
+        response = client.get("/api/view/operator", params={"station_id": "ST-01"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["spc_verdict"] is not None
+    assert body["spc_verdict"]["station_id"] == "ST-01"
+    assert body["spc_verdict"]["quantity"] == "ST-01-SEN-1"
+    assert body["spc_verdict"]["state"] != "unknown"
+
+
 def test_operator_view_unknown_station_returns_404(tmp_path):
     _setup_state(tmp_path)
     with TestClient(create_app()) as client:

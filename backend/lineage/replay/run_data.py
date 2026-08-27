@@ -86,6 +86,39 @@ class RunData:
             for row in latest_per_sensor.itertuples()
         ]
 
+    def reading_history_at(
+        self, station_id: str, quantity: str, up_to: datetime
+    ) -> list[tuple[datetime, float, str]]:
+        """Every reading of `quantity` at `station_id` at or before `up_to`,
+        oldest first, as (timestamp, value, car_id) -- the ordered history
+        evaluate_spc needs to score the live control state of a station
+        in-progress, not just its latest single reading. `quantity` matches
+        either a sensor_id or a manual reading's quantity name, same as
+        predict/risk.py's history builder."""
+        rows = self._telemetry[
+            (self._telemetry.station_id == station_id)
+            & (self._telemetry.timestamp <= up_to)
+            & ((self._telemetry.sensor_id == quantity) | (self._telemetry.quantity == quantity))
+        ].sort_values("timestamp")
+        return [
+            (row.timestamp.to_pydatetime(), float(row.value), str(row.car_id))
+            for row in rows.itertuples()
+        ]
+
+    def shift_changes_at(self, station_id: str, up_to: datetime) -> list[tuple[datetime, bool]]:
+        """Every shift-change event at `station_id` at or before `up_to`,
+        oldest first, as (timestamp, handover_flagged) -- what evaluate_spc
+        needs to know when a manual station's recalibration window started."""
+        rows = self._events[
+            (self._events.station_id == station_id)
+            & (self._events.event_type == "shift_change")
+            & (self._events.timestamp <= up_to)
+        ].sort_values("timestamp")
+        return [
+            (row.timestamp.to_pydatetime(), bool(json.loads(row.detail)["handover_flagged"]))
+            for row in rows.itertuples()
+        ]
+
     def machine_is_maintained(self, station: StationSpec, timestamp: datetime) -> bool:
         maintenance_events = self._events[
             (self._events.station_id == station.id)

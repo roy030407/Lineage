@@ -184,12 +184,16 @@ test("clicking a car opens its panel (raycast regression guard)", async ({ page 
 });
 
 test.describe("role views render their own distinctive content", () => {
-  test("Operator shows exactly one station, not the whole line", async ({ page }) => {
+  test("Operator shows exactly one station's detail, not the whole line", async ({ page }) => {
     await page.goto("/");
     await page.selectOption('select[aria-label="Select role view"]', "operator");
     await expect(page.locator('select[aria-label="My station"]')).toBeVisible();
-    // A per-station form (sensor health, live readings) should be present,
-    // and there should be no 40+ row station table like the other views.
+    // Distinctive, Operator-only content: handover/calibration status and the
+    // handover checklist -- neither exists in any other role view, so their
+    // presence alone rules out a shared fallback rendering the same thing.
+    await expect(page.getByText(/Handover status:/)).toBeVisible();
+    await expect(page.getByText("Handover checklist")).toBeVisible();
+    // And there must be no 40+ row station table like the other views.
     const rows = await page.locator("table tbody tr").count();
     expect(rows).toBeLessThan(10);
   });

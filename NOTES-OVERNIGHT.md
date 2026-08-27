@@ -316,9 +316,65 @@ Verified: `pytest -q` 140/140 (unaffected), `ruff check .` clean,
 `npx playwright test` 8/9 (was 7/8: +1 new regression test passing; same
 pre-existing documented spawn-tray gap, unrelated).
 
+## Task 6 — Role views (in progress)
+
+Investigation before writing anything turned up more than a frontend
+rebuild: `predict/bottleneck.py`'s `forecast_line` is fully built and
+tested (bottleneck warnings need zero new logic, just wiring), but
+`api/routes/act.py` and `api/routes/trace.py` are both empty stub files
+-- their routers aren't even registered in `app.py`. Act and Trace have
+zero HTTP surface today, even though `act/proposals.py`, `act/ledger.py`,
+`act/validator.py`, `trace/rootcause.py`, and `trace/lineage_query.py`
+are all built and unit-tested. Floor Supervisor's "approve Act
+proposals" and Plant Manager's "recurring root causes from Trace" both
+require standing these up for the first time, not just calling them.
+`act/models.py` already encodes `MINIMUM_APPROVER_ROLE = FLOOR_SUPERVISOR`
+-- the role-gating for approval is correct by construction, already.
+
+**Approved, deliberate spec change:** `test_plant_manager_view_includes_summary_counts`
+asserted `"line_state" in body`. Task 6 wants Plant Manager to be
+weekly/non-live with no real-time firehose, which means removing that
+field -- a real contract change, approved explicitly before touching the
+test (same precedent as Task 2's `NOT_YET_REPORTING`).
+
+### Operator ✅
+
+Backend (additive only, no existing field touched): `OperatorView`
+gained `spc_verdict: SPCVerdict | None`, the station's live control state
+evaluated via the real, already-tested `evaluate_spc` -- not a new
+heuristic. Required two new additive `RunData` methods
+(`reading_history_at`, `shift_changes_at`) to get an ordered reading/
+shift-change history up to "now", and reconstructing ambient temperature
+live from the run's own config (`baseline_temp_c` + zone excursions,
+keyed by the car the most recent reading belongs to) rather than
+assuming a neutral value -- `telemetry.csv` never persists `ambient_c`
+per row, it's a generation-time input, not a recorded quantity, so this
+was worth getting right rather than faking. New test
+`test_operator_view_includes_live_spc_verdict` asserts a real, non-UNKNOWN
+verdict once telemetry exists, not merely a present-but-empty field.
+
+Frontend: sensor/machine health via `StatusBadge` (already there),
+handover status and calibration state added via the new `spc_verdict`
+field (`SPC_STATE_TOKENS`), and a new handover checklist -- client-side,
+localStorage-persisted per station (no persistence requirement was
+specified for it, so no new endpoint), remounted with a `key` per
+station so switching stations never leaks a previous station's checked
+items, and auto-resets on a real backend-detected handover
+(`recalibrating` false->true transition), not just whenever the
+component happens to remount. Verified: checking an item persists across
+reload, and does not carry over when switching stations.
+
+Playwright: strengthened "Operator shows exactly one station" to assert
+two Operator-only elements (`Handover status:`, `Handover checklist`)
+that exist in no other role view, on top of the existing row-count check.
+
+Verified: `pytest -q` 141/141 (+1 new test), `ruff check .` clean,
+`tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
+`npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
+
 ## Remaining tasks
 
-6. Role views: Operator, Floor Supervisor, Plant Manager
+6. Role views: Floor Supervisor, Plant Manager (Operator done above)
 7. Leadership ROI backend + view
 8. Node-graph Builder canvas
 9. Final sweep

@@ -6,11 +6,16 @@ Leadership never receives per-station detail, rather than the frontend
 simply choosing not to display it.
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from lineage.api.deps import AppState, get_app_state
-from lineage.config.specs import CommissioningBaseline
+from lineage.config.specs import CommissioningBaseline, EnvironmentEnvelope, StationSpec
+from lineage.datagen.generators import ambient_temp_c
+from lineage.datagen.models import RunConfig
+from lineage.predict.spc import SPCVerdict, evaluate_spc
 from lineage.replay.models import (
     LatestReading,
     LineState,
@@ -18,8 +23,61 @@ from lineage.replay.models import (
     SensorHealth,
     StationState,
 )
+from lineage.replay.run_data import RunData
 
 router = APIRouter()
+
+
+def _representative_quantity(station: StationSpec) -> str | None:
+    """The one sensor id (instrumented/mixed) or readable_param name (manual)
+    to score SPC against -- same convention predict/risk.py's feature builder
+    uses, so a station's live control state and its retrospective risk
+    features are never computed two different ways."""
+    if station.sensors:
+        return station.sensors[0].id
+    if station.readable_params:
+        return station.readable_params[0]
+    return None
+
+
+def _live_spc_verdict(
+    *,
+    station: StationSpec,
+    run_data: RunData,
+    run_config: RunConfig,
+    envelope: EnvironmentEnvelope,
+    as_of: datetime,
+) -> SPCVerdict | None:
+    """The station's current SPC control state, scored live against its
+    telemetry-to-date -- None if it has no sensor/manual quantity to score at
+    all, or hasn't reported anything yet (sensor_health already distinguishes
+    those cases; this only answers "given a real reading history, what does
+    it say"). Ambient temperature is reconstructed from the run's own
+    config (baseline + zone excursions, keyed by the car the most recent
+    reading belongs to) rather than assumed, since telemetry.csv never
+    persists ambient_c per row -- it's a generation-time input, not a
+    recorded quantity."""
+    quantity = _representative_quantity(station)
+    if quantity is None:
+        return None
+    history_with_car = run_data.reading_history_at(station.id, quantity, as_of)
+    if not history_with_car:
+        return None
+    shift_changes = run_data.shift_changes_at(station.id, as_of)
+    history = [(t, v) for t, v, _ in history_with_car]
+    last_car_id = history_with_car[-1][2]
+    car_index = int(last_car_id.split("-")[1])
+    ambient_c = ambient_temp_c(
+        run_config.baseline_temp_c, run_config.environment_excursions, car_index, station.zone
+    )
+    return evaluate_spc(
+        station=station,
+        quantity=quantity,
+        history=history,
+        shift_changes=shift_changes,
+        ambient_c=ambient_c,
+        envelope=envelope,
+    )
 
 
 def _require_engine(state: AppState) -> None:
@@ -76,6 +134,11 @@ class OperatorView(BaseModel):
     machine_health: MachineHealth
     latest_readings: list[LatestReading]
     commissioning_baseline: CommissioningBaseline | None
+    spc_verdict: SPCVerdict | None
+    """The station's live control/handover/calibration status -- None only
+    when there's no quantity to score at all or nothing has reported yet
+    (sensor_health already distinguishes those); otherwise a real verdict,
+    including recalibrating, straight from predict/spc.py's evaluate_spc."""
 
 
 class FloorSupervisorView(BaseModel):
@@ -110,6 +173,20 @@ def get_operator_view(
 
     line_state = _current_line_state(state)
     station_state = next(s for s in line_state.stations if s.station_id == station_id)
+
+    assert state.engine is not None  # _require_engine already checked this
+    assert state.current_run_dir is not None  # set alongside engine at 'load' time
+    run_config = RunConfig.model_validate_json(
+        (state.current_run_dir / "run_config.json").read_text()
+    )
+    spc_verdict = _live_spc_verdict(
+        station=spec,
+        run_data=state.engine.run_data,
+        run_config=run_config,
+        envelope=state.line.environment_envelope,
+        as_of=line_state.timestamp,
+    )
+
     return OperatorView(
         station_id=spec.id,
         station_name=spec.name,
@@ -117,6 +194,7 @@ def get_operator_view(
         machine_health=station_state.machine_health,
         latest_readings=station_state.latest_readings,
         commissioning_baseline=spec.commissioning_baseline,
+        spc_verdict=spc_verdict,
     )
 
 
