@@ -1,8 +1,10 @@
 // Single station: a matte painted-metal block with two andon-style lamp
 // meshes mounted on top -- a sphere for sensor health, a cube for machine
-// health -- colored from the beacon palette. NOT_APPLICABLE substitutes a
-// distinct shape (an octahedron) rather than a texture, since sensor health
-// must never be signalled by color alone.
+// health -- colored from the beacon palette. NOT_APPLICABLE and
+// NOT_YET_REPORTING each substitute a distinct shape (an octahedron, a
+// tetrahedron) rather than a texture, since sensor health must never be
+// signalled by color alone -- and NOT_YET_REPORTING shares its neutral
+// color with NOT_APPLICABLE precisely because neither is a fault.
 
 import { Text } from "@react-three/drei";
 import { useMemo } from "react";
@@ -20,7 +22,18 @@ export const BLOCK_SIZE: [number, number, number] = [2.2, 1.4, 1.6];
 function sensorColor(health: SensorHealth): string {
   if (health === "green") return COLORS.beaconGreen;
   if (health === "red") return COLORS.beaconRed;
+  // not_yet_reporting and not_applicable share this neutral color --
+  // neither is a fault, so neither earns a beacon color. Shape (see
+  // sensorGeometry below) is what keeps them visually distinguishable.
   return COLORS.steelNeutral;
+}
+
+type SensorGeometry = "sphere" | "octahedron" | "tetrahedron";
+
+function sensorGeometryFor(health: SensorHealth): SensorGeometry {
+  if (health === "not_applicable") return "octahedron";
+  if (health === "not_yet_reporting") return "tetrahedron";
+  return "sphere";
 }
 
 function machineColor(health: MachineHealth): string {
@@ -39,10 +52,7 @@ interface Props {
 export function Station3D({ stationId, x, z, sensorHealth, machineHealth, isSelected }: Props) {
   const selectStation = useLineageStore((s) => s.selectStation);
 
-  const sensorGeometry = useMemo(
-    () => (sensorHealth === "not_applicable" ? "octahedron" : "sphere"),
-    [sensorHealth],
-  );
+  const sensorGeometry = useMemo(() => sensorGeometryFor(sensorHealth), [sensorHealth]);
 
   return (
     <group
@@ -71,8 +81,10 @@ export function Station3D({ stationId, x, z, sensorHealth, machineHealth, isSele
       <mesh position={[-0.55, BLOCK_SIZE[1] / 2 + 0.25, 0]}>
         {sensorGeometry === "sphere" ? (
           <sphereGeometry args={[0.22, 16, 16]} />
-        ) : (
+        ) : sensorGeometry === "octahedron" ? (
           <octahedronGeometry args={[0.26, 0]} />
+        ) : (
+          <tetrahedronGeometry args={[0.28, 0]} />
         )}
         <meshStandardMaterial
           color={sensorColor(sensorHealth)}

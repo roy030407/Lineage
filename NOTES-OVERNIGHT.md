@@ -56,7 +56,7 @@ Verified: `pytest -q` 137/137, `ruff check .` clean, `tsc --noEmit` clean,
 `vitest run` 1/1, production build succeeds, `npx playwright test` 7/8
 (1 expected failure, documented above).
 
-## Task 2 — replay/Play bug ✅ (leading cause addressed; one finding held for approval)
+## Task 2 — replay/Play bug ✅ (leading cause addressed; RED-conflation fixed)
 
 Fixed the leading suspected root cause directly: `render.yaml`'s
 `startCommand` now pins `--workers 1` explicitly (uvicorn's default in most
@@ -72,15 +72,26 @@ nonzero upstream buffer depth (max observed: 2). This guards the tick
 mechanism itself; it does not and cannot reproduce the multi-worker/
 multi-instance topology issue in a single-process test.
 
-**Held for explicit approval, not fixed:** the RED-conflation finding
-(`sensor_is_reporting` returning `False`/RED both for "gone stale" and
-"hasn't reported yet") would need a new `SensorHealth` state to fix
-properly, and `tests/unit/test_replay.py::test_station_without_sensors_reports_not_applicable_never_red`
-currently asserts `sensor_health in (GREEN, RED)` for an instrumented
-station at the very start of a run -- exactly the "hasn't reported yet"
-case. Splitting RED into two states would break that existing assertion.
-Per this project's own rule ("tests are the spec, stop and ask"), this is
-flagged rather than changed.
+**RED-conflation finding: fixed, with explicit approval.** Added
+`SensorHealth.NOT_YET_REPORTING` (`replay/models.py`) distinct from `RED`:
+`RunData.sensor_is_reporting` (`replay/run_data.py`) now returns
+`SensorHealth` directly instead of `bool | None`, returning
+`NOT_YET_REPORTING` when no telemetry row exists yet for a station instead
+of folding that into `RED`. `replay/engine.py`'s `current_state()` was
+simplified accordingly (no longer needs its own None/bool-to-enum
+mapping). Per this project's own rule ("tests are the spec, stop and
+ask"), the user was asked before touching the existing assertion in
+`tests/unit/test_replay.py::test_station_without_sensors_reports_not_applicable_never_red`
+and explicitly approved adding the new state; that assertion was widened
+to include `NOT_YET_REPORTING`, and a new dedicated regression test,
+`test_instrumented_station_reports_not_yet_reporting_before_first_reading`,
+asserts the specific case directly (using ST-03, the second instrumented
+station, since ST-01 already has a reading at the run's start time).
+Frontend: `state/types.ts`'s `SensorHealth` union gained
+`"not_yet_reporting"`; `scene/Station3D.tsx`'s sensor lamp now renders it
+as a tetrahedron in the same neutral color as `NOT_APPLICABLE` (neither is
+a fault, so neither earns a beacon color -- shape is what keeps them
+distinguishable, same rule as `NOT_APPLICABLE`'s octahedron).
 
 ## Remaining tasks
 
@@ -108,8 +119,9 @@ Root cause, ranked by confidence:
 2. **(Can't rule out without logs)** Render idle-throttling of the
    background asyncio task between requests.
 
-Separately confirmed, real, distinct finding: `sensor_is_reporting`
-(`run_data.py:59-60`) returns `False` -- mapped to RED -- both when a
-sensor has gone stale AND when it simply hasn't reported yet because
-simulated time hasn't reached it. These are different states and the UI
-doesn't currently distinguish them.
+Separately confirmed, real, distinct finding (now fixed, see Task 2's
+RED-conflation writeup above): `sensor_is_reporting` (`run_data.py`) used
+to return `False` -- mapped to RED -- both when a sensor had gone stale
+AND when it simply hadn't reported yet because simulated time hadn't
+reached it. These are different states; the UI now distinguishes them via
+`SensorHealth.NOT_YET_REPORTING`.

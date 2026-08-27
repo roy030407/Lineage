@@ -97,7 +97,7 @@ export interface LineSpec {
 
 // --- replay -------------------------------------------------------------
 
-export type SensorHealth = "green" | "red" | "not_applicable";
+export type SensorHealth = "green" | "red" | "not_yet_reporting" | "not_applicable";
 export type MachineHealth = "green" | "red";
 export type PlaybackMode = "playing" | "paused" | "step";
 

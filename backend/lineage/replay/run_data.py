@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 from lineage.config.specs import StationSpec
-from lineage.replay.models import LatestReading
+from lineage.replay.models import LatestReading, SensorHealth
 
 
 class RunData:
@@ -47,19 +47,23 @@ class RunData:
         detail = json.loads(rows.iloc[-1].detail)
         return int(detail["depth"])
 
-    def sensor_is_reporting(self, station: StationSpec, timestamp: datetime) -> bool | None:
-        """None if the station has no sensors at all (caller maps that to
-        NOT_APPLICABLE); otherwise whether its latest telemetry row is recent
-        enough as of `timestamp`."""
+    def sensor_is_reporting(self, station: StationSpec, timestamp: datetime) -> SensorHealth:
+        """Distinguishes three states: NOT_APPLICABLE (no sensors at all),
+        NOT_YET_REPORTING (has sensors, but no telemetry row exists yet
+        before `timestamp` -- simulated time simply hasn't reached this
+        station, not a fault), and GREEN/RED (has reported before; RED means
+        its latest reading is older than sensor_stale_after_s, a real
+        "stopped reporting" fault)."""
         if not station.sensors:
-            return None
+            return SensorHealth.NOT_APPLICABLE
         rows = self._telemetry[
             (self._telemetry.station_id == station.id) & (self._telemetry.timestamp <= timestamp)
         ]
         if rows.empty:
-            return False
+            return SensorHealth.NOT_YET_REPORTING
         last_ts = rows.iloc[-1].timestamp.to_pydatetime()
-        return (timestamp - last_ts) <= timedelta(seconds=self.sensor_stale_after_s)
+        is_fresh = (timestamp - last_ts) <= timedelta(seconds=self.sensor_stale_after_s)
+        return SensorHealth.GREEN if is_fresh else SensorHealth.RED
 
     def latest_readings_at(self, station: StationSpec, timestamp: datetime) -> list[LatestReading]:
         """The most recent reading for each of this station's sensors (or

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from lineage.config.specs import LineSpec
 from lineage.replay.clock import SimClock
-from lineage.replay.models import LineState, MachineHealth, SensorHealth, StationState
+from lineage.replay.models import LineState, MachineHealth, StationState
 from lineage.replay.run_data import RunData
 
 
@@ -48,11 +48,7 @@ class ReplayEngine:
         timestamp = self.clock.current_time
         stations = []
         for station in self.line.stations:
-            is_reporting = self.run_data.sensor_is_reporting(station, timestamp)
-            if is_reporting is None:
-                sensor_health = SensorHealth.NOT_APPLICABLE
-            else:
-                sensor_health = SensorHealth.GREEN if is_reporting else SensorHealth.RED
+            sensor_health = self.run_data.sensor_is_reporting(station, timestamp)
 
             machine_health = (
                 MachineHealth.GREEN

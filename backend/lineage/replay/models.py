@@ -10,10 +10,18 @@ class SensorHealth(StrEnum):
     """Whether this station's sensor(s) are currently reporting telemetry --
     NOT whether the readings are accurate. A sensor can be GREEN (reporting
     on schedule) while producing wildly wrong values; accuracy assessment is
-    Predict's job and is out of scope for this type."""
+    Predict's job and is out of scope for this type.
+
+    RED and NOT_YET_REPORTING are deliberately distinct: RED means a sensor
+    that WAS reporting has gone stale (a real fault); NOT_YET_REPORTING
+    means simulated time simply hasn't reached this station yet, so no
+    telemetry exists at all -- not a fault. These used to be conflated
+    (both mapped to RED), which is exactly what made a stalled replay
+    engine look identical to 29 simultaneous sensor faults."""
 
     GREEN = "green"
     RED = "red"
+    NOT_YET_REPORTING = "not_yet_reporting"
     NOT_APPLICABLE = "not_applicable"
 
 

@@ -210,8 +210,29 @@ def test_station_without_sensors_reports_not_applicable_never_red(tmp_path):
     manual_station = next(s for s in state.stations if s.station_id == "ST-02")
     assert manual_station.sensor_health == SensorHealth.NOT_APPLICABLE
 
+    # At t=0 an instrumented station legitimately hasn't reported yet (simulated
+    # time hasn't reached it); that's NOT_YET_REPORTING, not RED -- RED is reserved
+    # for a sensor that WAS reporting and has since gone stale.
     instrumented_station = next(s for s in state.stations if s.station_id == "ST-01")
-    assert instrumented_station.sensor_health in (SensorHealth.GREEN, SensorHealth.RED)
+    assert instrumented_station.sensor_health in (
+        SensorHealth.GREEN,
+        SensorHealth.RED,
+        SensorHealth.NOT_YET_REPORTING,
+    )
+
+
+def test_instrumented_station_reports_not_yet_reporting_before_first_reading(tmp_path):
+    """Regression test for the RED/NOT_YET_REPORTING conflation: before a
+    downstream instrumented station's first car has arrived, it must report
+    NOT_YET_REPORTING, never RED -- RED is reserved for a sensor that WAS
+    reporting and has since gone stale, which cannot yet be true before it
+    has ever reported. ST-03 (not ST-01) is used because ST-01 is the first
+    station on the line and already has a reading at the run's start time."""
+    engine = make_engine(tmp_path)
+    state = engine.current_state()
+
+    downstream_station = next(s for s in state.stations if s.station_id == "ST-03")
+    assert downstream_station.sensor_health == SensorHealth.NOT_YET_REPORTING
 
 
 def test_machine_health_green_when_freshly_maintained(tmp_path):
