@@ -162,6 +162,34 @@ def test_seek_is_idempotent(tmp_path):
     )
 
 
+def test_ticking_advances_time_and_buffer_depths_become_nonzero(tmp_path):
+    """Regression test for a real reported symptom: a deployed instance
+    stuck with buffers at 0.0 and stations RED because simulated time
+    never advanced past load. engine.tick() is the exact mechanism the
+    background _tick_loop in api/app.py calls once a second while
+    PLAYING -- this asserts that mechanism actually moves time forward
+    and that upstream buffering (cars queueing behind a station) is real,
+    observable behavior, not just a static snapshot repeated forever.
+
+    This does NOT reproduce the leading suspected root cause (multiple
+    worker processes/instances splitting AppState's single in-memory
+    global, so the process serving a WebSocket never sees an engine at
+    all) -- that's a deployment-topology issue, not something a
+    single-process test can exercise. It does guard against a genuine
+    regression in the tick mechanism itself."""
+    engine = make_engine(tmp_path, num_cars=20)
+    initial_time = engine.current_state().timestamp
+
+    buffer_seen_nonzero = False
+    for _ in range(120):
+        state = engine.tick()
+        if any(s.upstream_buffer_depth > 0 for s in state.stations):
+            buffer_seen_nonzero = True
+
+    assert engine.current_state().timestamp > initial_time
+    assert buffer_seen_nonzero
+
+
 def test_pausing_stops_emission(tmp_path):
     engine = make_engine(tmp_path)
     engine.pause()

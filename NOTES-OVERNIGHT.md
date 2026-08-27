@@ -56,9 +56,34 @@ Verified: `pytest -q` 137/137, `ruff check .` clean, `tsc --noEmit` clean,
 `vitest run` 1/1, production build succeeds, `npx playwright test` 7/8
 (1 expected failure, documented above).
 
+## Task 2 — replay/Play bug ✅ (leading cause addressed; one finding held for approval)
+
+Fixed the leading suspected root cause directly: `render.yaml`'s
+`startCommand` now pins `--workers 1` explicitly (uvicorn's default in most
+contexts, but not guaranteed, and worth being loud about rather than
+implicit), and `api/deps.py`'s `_state` global now carries an explicit
+docstring explaining exactly why this app cannot run as more than one
+process/worker without moving state out of an in-process global first.
+
+Added `test_ticking_advances_time_and_buffer_depths_become_nonzero` to
+`tests/unit/test_replay.py` -- empirically confirmed (not assumed) that a
+20-car run over 120 ticks both advances simulated time and produces a real
+nonzero upstream buffer depth (max observed: 2). This guards the tick
+mechanism itself; it does not and cannot reproduce the multi-worker/
+multi-instance topology issue in a single-process test.
+
+**Held for explicit approval, not fixed:** the RED-conflation finding
+(`sensor_is_reporting` returning `False`/RED both for "gone stale" and
+"hasn't reported yet") would need a new `SensorHealth` state to fix
+properly, and `tests/unit/test_replay.py::test_station_without_sensors_reports_not_applicable_never_red`
+currently asserts `sensor_health in (GREEN, RED)` for an instrumented
+station at the very start of a run -- exactly the "hasn't reported yet"
+case. Splitting RED into two states would break that existing assertion.
+Per this project's own rule ("tests are the spec, stop and ask"), this is
+flagged rather than changed.
+
 ## Remaining tasks
 
-2. Fix replay/Play bug -- diagnosed (see below), not yet fixed.
 3. Serpentine layout regeneration
 4. Shared design token system
 5. 3D Mirror rebuild

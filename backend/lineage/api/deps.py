@@ -58,6 +58,17 @@ class AppState:
 
 
 _state: AppState | None = None
+"""A bare process-wide Python global. This app can only ever run as a
+single process/worker -- api/app.py's background tick loop only advances
+state on whatever process has an engine loaded, and a second worker gets
+its own separate, empty copy of this global with no way to share it. If
+'load' lands on one process and a live request (especially the WebSocket)
+lands on another, the second process just sits forever on its own initial
+state, showing whatever was true at the moment it started -- this was a
+real, diagnosed symptom (see NOTES-OVERNIGHT.md), not a hypothetical.
+render.yaml pins --workers 1 explicitly for exactly this reason. Scaling
+beyond one process/instance requires moving this out of an in-process
+global first (Redis or similar), not just raising a number."""
 
 
 def get_app_state() -> AppState:

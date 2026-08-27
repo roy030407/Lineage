@@ -10,10 +10,19 @@ services:
     # request directly; this is the standard, low-risk uvicorn setting for
     # running behind a reverse proxy (nothing in this app currently inspects
     # scheme/client-IP, but this is correct if that ever changes).
+    # --workers 1 is not the uvicorn default in every context and is
+    # deliberately explicit, not a no-op: AppState (api/deps.py) is a bare
+    # process-wide Python global, and the tick loop only advances state on
+    # whatever process has an engine loaded. A second worker would get its
+    # own empty copy of everything -- if the live WebSocket connection
+    # landed there while 'load' landed on the first, it would sit forever
+    # showing whatever the first tick was, never advancing. Do not raise
+    # this without first moving state out of an in-process global.
     startCommand: >-
       uvicorn lineage.api.app:app
       --host 0.0.0.0
       --port $PORT
+      --workers 1
       --proxy-headers
       --forwarded-allow-ips="*"
     envVars:
