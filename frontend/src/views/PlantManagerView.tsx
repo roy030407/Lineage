@@ -59,7 +59,7 @@ export function PlantManagerView() {
   return (
     <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-4)" }}>
-        <p className="eyebrow">Plant Manager view — weekly report</p>
+        <p className="eyebrow">Plant Manager view: weekly report</p>
         <button onClick={() => void load()} disabled={loading}>
           {loading ? "Refreshing…" : "Refresh"}
         </button>
@@ -173,7 +173,7 @@ export function PlantManagerView() {
                 {status.days_until_due.toFixed(1)}
               </td>
               <td>
-                {status.recent_wear_state === null ? "—" : status.recent_wear_state.toFixed(2)}
+                {status.recent_wear_state === null ? "N/A" : status.recent_wear_state.toFixed(2)}
               </td>
             </tr>
           ))}

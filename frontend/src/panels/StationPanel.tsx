@@ -80,8 +80,8 @@ export function StationPanel() {
             {Object.keys(station.commissioning_baseline.loaded.mean).map((quantity) => (
               <tr key={quantity}>
                 <td>{quantity}</td>
-                <td>{station.commissioning_baseline!.idle.mean[quantity]?.toFixed(2) ?? "—"}</td>
-                <td>{station.commissioning_baseline!.loaded.mean[quantity]?.toFixed(2) ?? "—"}</td>
+                <td>{station.commissioning_baseline!.idle.mean[quantity]?.toFixed(2) ?? "N/A"}</td>
+                <td>{station.commissioning_baseline!.loaded.mean[quantity]?.toFixed(2) ?? "N/A"}</td>
               </tr>
             ))}
           </tbody>

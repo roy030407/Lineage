@@ -10,7 +10,7 @@ import { getPredictMetricsByStation, getPredictTrend } from "../state/api";
 import type { LedgerMetrics, TrendState } from "../state/types";
 
 function formatRate(value: number | null): string {
-  return value === null ? "—" : `${(value * 100).toFixed(0)}%`;
+  return value === null ? "N/A" : `${(value * 100).toFixed(0)}%`;
 }
 
 function MetricsRow({ stationId, metrics }: { stationId: string; metrics: LedgerMetrics }) {
@@ -119,7 +119,7 @@ export function PredictionLedgerView() {
 
   return (
     <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
-      <p className="eyebrow">Prediction Ledger — per station</p>
+      <p className="eyebrow">Prediction Ledger: per station</p>
 
       {stationIds.length === 0 ? (
         <p>No resolved predictions yet for this run.</p>

@@ -269,8 +269,8 @@ def build_line() -> LineSpec:
         temp_min_c=18.0, temp_max_c=26.0, humidity_min_pct=30.0, humidity_max_pct=60.0
     )
     return LineSpec(
-        plant_name="Meridian Assembly Plant",
-        site="Meridian, OH, USA",
+        plant_name="Lineage",
+        site="Lineage, OH, USA",
         stations=stations,
         layout=layout,
         environment_envelope=envelope,

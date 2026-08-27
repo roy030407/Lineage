@@ -214,8 +214,14 @@ function BuilderCanvasInner() {
         onDrop={handleDrop}
         onDragOver={(event) => event.preventDefault()}
         fitView
-        fitViewOptions={{ minZoom: 0.05 }}
-        minZoom={0.05}
+        // Tightened from 0.05 per user feedback ("zoom out lets me go too
+        // far"), but kept below the natural fit-to-content zoom for a full
+        // 42-station line (~0.107, measured directly) with real margin --
+        // any higher and fitView itself gets clamped, pushing stations at
+        // either end of a large line off-screen on load. 0.08 leaves ~25%
+        // headroom below that measured value.
+        fitViewOptions={{ minZoom: 0.08 }}
+        minZoom={0.08}
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={24} color="var(--color-steel-neutral)" />

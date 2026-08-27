@@ -204,9 +204,9 @@ export function OperatorView() {
                 {Object.keys(view.commissioning_baseline.loaded.mean).map((quantity) => (
                   <tr key={quantity}>
                     <td>{quantity}</td>
-                    <td>{view.commissioning_baseline!.idle.mean[quantity]?.toFixed(2) ?? "—"}</td>
+                    <td>{view.commissioning_baseline!.idle.mean[quantity]?.toFixed(2) ?? "N/A"}</td>
                     <td>
-                      {view.commissioning_baseline!.loaded.mean[quantity]?.toFixed(2) ?? "—"}
+                      {view.commissioning_baseline!.loaded.mean[quantity]?.toFixed(2) ?? "N/A"}
                     </td>
                   </tr>
                 ))}

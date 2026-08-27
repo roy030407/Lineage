@@ -1,5 +1,5 @@
-plant_name: Meridian Assembly Plant
-site: Meridian, OH, USA
+plant_name: Lineage
+site: Lineage, OH, USA
 stations:
 - id: ST-01
   name: Body Station 1 (Manual)

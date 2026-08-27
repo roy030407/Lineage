@@ -262,7 +262,7 @@ export function FloorSupervisorView() {
             {view.line_state.stations.map((station) => (
               <tr key={station.station_id}>
                 <td>{station.station_id}</td>
-                <td>{station.car_id ?? "—"}</td>
+                <td>{station.car_id ?? "N/A"}</td>
                 <td>
                   <StatusBadge token={SENSOR_HEALTH_TOKENS[station.sensor_health]} />
                 </td>
