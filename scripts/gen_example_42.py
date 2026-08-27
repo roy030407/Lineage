@@ -189,21 +189,82 @@ def build_station(i: int) -> StationSpec:
     )
 
 
+ROW_Y_BY_ZONE = {Zone.BODY: 0.0, Zone.PAINT: -22.0, Zone.FINAL: -44.0}
+
+# Serpentine (S-shaped) plant footprint: each zone is its own row, so the
+# three bays are visually separable by geometry alone, not just by station
+# name. Direction alternates row to row (the "turns" that make it an S
+# rather than three parallel lines), and intra-row spacing varies by a
+# per-zone formula (denser in some areas, wider in others) rather than a
+# uniform gap -- both deliberately, to reflect a real plant floor instead
+# of the previous 328m straight ruler at a uniform 8m.
+BODY_ROW_X_START = 0.0
+BODY_TO_PAINT_X_JOG = 5.0  # small forward jog before the corridor turn down into paint
+PAINT_TO_FINAL_X_JOG = -8.0  # small further jog before turning back into final
+
+
+def body_spacing(i: int) -> float:
+    return 6.0 + (i % 4) * 1.5  # cycles 6.0 / 7.5 / 9.0 / 10.5 m
+
+
+def paint_spacing(j: int) -> float:
+    return 8.0 + (j % 3) * 2.0  # cycles 8 / 10 / 12 m
+
+
+def final_spacing(j: int) -> float:
+    return 5.0 + (j % 5) * 1.2  # cycles 5.0 / 6.2 / 7.4 / 8.6 / 9.8 m
+
+
+def build_layout(stations: list[StationSpec]) -> LayoutSpec:
+    """Coordinates come first, purely from per-zone row/direction/spacing
+    rules; every segment's distance_m is then the actual Euclidean distance
+    between its two coordinates, never set independently. Zone-transition
+    segments aren't hand-set to be long -- they come out that way because
+    each is a corridor turn (a full row-to-row y-drop plus a small x-jog),
+    which is inherently longer than any in-row gap."""
+    body = [s for s in stations if s.zone is Zone.BODY]
+    paint = [s for s in stations if s.zone is Zone.PAINT]
+    final = [s for s in stations if s.zone is Zone.FINAL]
+
+    coords_by_id: dict[str, StationCoordinate] = {}
+
+    x = BODY_ROW_X_START
+    for i, s in enumerate(body):
+        if i > 0:
+            x += body_spacing(i - 1)
+        coords_by_id[s.id] = StationCoordinate(station_id=s.id, x_m=x, y_m=ROW_Y_BY_ZONE[Zone.BODY])
+
+    x = coords_by_id[body[-1].id].x_m + BODY_TO_PAINT_X_JOG
+    for j, s in enumerate(paint):
+        if j > 0:
+            x -= paint_spacing(j - 1)
+        coords_by_id[s.id] = StationCoordinate(station_id=s.id, x_m=x, y_m=ROW_Y_BY_ZONE[Zone.PAINT])
+
+    x = coords_by_id[paint[-1].id].x_m + PAINT_TO_FINAL_X_JOG
+    for j, s in enumerate(final):
+        if j > 0:
+            x += final_spacing(j - 1)
+        coords_by_id[s.id] = StationCoordinate(station_id=s.id, x_m=x, y_m=ROW_Y_BY_ZONE[Zone.FINAL])
+
+    coords = [coords_by_id[s.id] for s in stations]
+
+    segments = []
+    for i in range(len(stations) - 1):
+        a, b = coords_by_id[stations[i].id], coords_by_id[stations[i + 1].id]
+        distance = ((b.x_m - a.x_m) ** 2 + (b.y_m - a.y_m) ** 2) ** 0.5
+        segments.append(
+            ConveyorSegment(
+                from_station_id=stations[i].id,
+                to_station_id=stations[i + 1].id,
+                distance_m=distance,
+            )
+        )
+    return LayoutSpec(coordinates=coords, segments=segments)
+
+
 def build_line() -> LineSpec:
     stations = [build_station(i) for i in range(42)]
-    coords = [
-        StationCoordinate(station_id=s.id, x_m=float(i * 8), y_m=0.0)
-        for i, s in enumerate(stations)
-    ]
-    segments = [
-        ConveyorSegment(
-            from_station_id=stations[i].id,
-            to_station_id=stations[i + 1].id,
-            distance_m=8.0,
-        )
-        for i in range(len(stations) - 1)
-    ]
-    layout = LayoutSpec(coordinates=coords, segments=segments)
+    layout = build_layout(stations)
     envelope = EnvironmentEnvelope(
         temp_min_c=18.0, temp_max_c=26.0, humidity_min_pct=30.0, humidity_max_pct=60.0
     )

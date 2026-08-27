@@ -1987,258 +1987,258 @@ layout:
     x_m: 0.0
     y_m: 0.0
   - station_id: ST-02
-    x_m: 8.0
+    x_m: 6.0
     y_m: 0.0
   - station_id: ST-03
-    x_m: 16.0
+    x_m: 13.5
     y_m: 0.0
   - station_id: ST-04
-    x_m: 24.0
+    x_m: 22.5
     y_m: 0.0
   - station_id: ST-05
-    x_m: 32.0
+    x_m: 33.0
     y_m: 0.0
   - station_id: ST-06
-    x_m: 40.0
+    x_m: 39.0
     y_m: 0.0
   - station_id: ST-07
-    x_m: 48.0
+    x_m: 46.5
     y_m: 0.0
   - station_id: ST-08
-    x_m: 56.0
+    x_m: 55.5
     y_m: 0.0
   - station_id: ST-09
-    x_m: 64.0
+    x_m: 66.0
     y_m: 0.0
   - station_id: ST-10
     x_m: 72.0
     y_m: 0.0
   - station_id: ST-11
-    x_m: 80.0
+    x_m: 79.5
     y_m: 0.0
   - station_id: ST-12
-    x_m: 88.0
+    x_m: 88.5
     y_m: 0.0
   - station_id: ST-13
-    x_m: 96.0
+    x_m: 99.0
     y_m: 0.0
   - station_id: ST-14
-    x_m: 104.0
+    x_m: 105.0
     y_m: 0.0
   - station_id: ST-15
-    x_m: 112.0
+    x_m: 112.5
     y_m: 0.0
   - station_id: ST-16
-    x_m: 120.0
+    x_m: 121.5
     y_m: 0.0
   - station_id: ST-17
-    x_m: 128.0
-    y_m: 0.0
+    x_m: 126.5
+    y_m: -22.0
   - station_id: ST-18
-    x_m: 136.0
-    y_m: 0.0
+    x_m: 118.5
+    y_m: -22.0
   - station_id: ST-19
-    x_m: 144.0
-    y_m: 0.0
+    x_m: 108.5
+    y_m: -22.0
   - station_id: ST-20
-    x_m: 152.0
-    y_m: 0.0
+    x_m: 96.5
+    y_m: -22.0
   - station_id: ST-21
-    x_m: 160.0
-    y_m: 0.0
+    x_m: 88.5
+    y_m: -22.0
   - station_id: ST-22
-    x_m: 168.0
-    y_m: 0.0
+    x_m: 78.5
+    y_m: -22.0
   - station_id: ST-23
-    x_m: 176.0
-    y_m: 0.0
+    x_m: 66.5
+    y_m: -22.0
   - station_id: ST-24
-    x_m: 184.0
-    y_m: 0.0
+    x_m: 58.5
+    y_m: -22.0
   - station_id: ST-25
-    x_m: 192.0
-    y_m: 0.0
+    x_m: 48.5
+    y_m: -22.0
   - station_id: ST-26
-    x_m: 200.0
-    y_m: 0.0
+    x_m: 36.5
+    y_m: -22.0
   - station_id: ST-27
-    x_m: 208.0
-    y_m: 0.0
+    x_m: 28.5
+    y_m: -44.0
   - station_id: ST-28
-    x_m: 216.0
-    y_m: 0.0
+    x_m: 33.5
+    y_m: -44.0
   - station_id: ST-29
-    x_m: 224.0
-    y_m: 0.0
+    x_m: 39.7
+    y_m: -44.0
   - station_id: ST-30
-    x_m: 232.0
-    y_m: 0.0
+    x_m: 47.1
+    y_m: -44.0
   - station_id: ST-31
-    x_m: 240.0
-    y_m: 0.0
+    x_m: 55.7
+    y_m: -44.0
   - station_id: ST-32
-    x_m: 248.0
-    y_m: 0.0
+    x_m: 65.5
+    y_m: -44.0
   - station_id: ST-33
-    x_m: 256.0
-    y_m: 0.0
+    x_m: 70.5
+    y_m: -44.0
   - station_id: ST-34
-    x_m: 264.0
-    y_m: 0.0
+    x_m: 76.7
+    y_m: -44.0
   - station_id: ST-35
-    x_m: 272.0
-    y_m: 0.0
+    x_m: 84.10000000000001
+    y_m: -44.0
   - station_id: ST-36
-    x_m: 280.0
-    y_m: 0.0
+    x_m: 92.7
+    y_m: -44.0
   - station_id: ST-37
-    x_m: 288.0
-    y_m: 0.0
+    x_m: 102.5
+    y_m: -44.0
   - station_id: ST-38
-    x_m: 296.0
-    y_m: 0.0
+    x_m: 107.5
+    y_m: -44.0
   - station_id: ST-39
-    x_m: 304.0
-    y_m: 0.0
+    x_m: 113.7
+    y_m: -44.0
   - station_id: ST-40
-    x_m: 312.0
-    y_m: 0.0
+    x_m: 121.10000000000001
+    y_m: -44.0
   - station_id: ST-41
-    x_m: 320.0
-    y_m: 0.0
+    x_m: 129.70000000000002
+    y_m: -44.0
   - station_id: ST-42
-    x_m: 328.0
-    y_m: 0.0
+    x_m: 139.50000000000003
+    y_m: -44.0
   - station_id: ST-43
     x_m: 124.0
-    y_m: 0.0
+    y_m: -11.0
   segments:
   - from_station_id: ST-01
     to_station_id: ST-02
-    distance_m: 8.0
+    distance_m: 6.0
   - from_station_id: ST-02
     to_station_id: ST-03
-    distance_m: 8.0
+    distance_m: 7.5
   - from_station_id: ST-03
     to_station_id: ST-04
-    distance_m: 8.0
+    distance_m: 9.0
   - from_station_id: ST-04
     to_station_id: ST-05
-    distance_m: 8.0
+    distance_m: 10.5
   - from_station_id: ST-05
     to_station_id: ST-06
-    distance_m: 8.0
+    distance_m: 6.0
   - from_station_id: ST-06
     to_station_id: ST-07
-    distance_m: 8.0
+    distance_m: 7.5
   - from_station_id: ST-07
     to_station_id: ST-08
-    distance_m: 8.0
+    distance_m: 9.0
   - from_station_id: ST-08
     to_station_id: ST-09
-    distance_m: 8.0
+    distance_m: 10.5
   - from_station_id: ST-09
     to_station_id: ST-10
-    distance_m: 8.0
+    distance_m: 6.0
   - from_station_id: ST-10
     to_station_id: ST-11
-    distance_m: 8.0
+    distance_m: 7.5
   - from_station_id: ST-11
     to_station_id: ST-12
-    distance_m: 8.0
+    distance_m: 9.0
   - from_station_id: ST-12
     to_station_id: ST-13
-    distance_m: 8.0
+    distance_m: 10.5
   - from_station_id: ST-13
     to_station_id: ST-14
-    distance_m: 8.0
+    distance_m: 6.0
   - from_station_id: ST-14
     to_station_id: ST-15
-    distance_m: 8.0
+    distance_m: 7.5
   - from_station_id: ST-15
     to_station_id: ST-16
-    distance_m: 8.0
+    distance_m: 9.0
   - from_station_id: ST-17
     to_station_id: ST-18
     distance_m: 8.0
   - from_station_id: ST-18
     to_station_id: ST-19
-    distance_m: 8.0
+    distance_m: 10.0
   - from_station_id: ST-19
     to_station_id: ST-20
-    distance_m: 8.0
+    distance_m: 12.0
   - from_station_id: ST-20
     to_station_id: ST-21
     distance_m: 8.0
   - from_station_id: ST-21
     to_station_id: ST-22
-    distance_m: 8.0
+    distance_m: 10.0
   - from_station_id: ST-22
     to_station_id: ST-23
-    distance_m: 8.0
+    distance_m: 12.0
   - from_station_id: ST-23
     to_station_id: ST-24
     distance_m: 8.0
   - from_station_id: ST-24
     to_station_id: ST-25
-    distance_m: 8.0
+    distance_m: 10.0
   - from_station_id: ST-25
     to_station_id: ST-26
-    distance_m: 8.0
+    distance_m: 12.0
   - from_station_id: ST-26
     to_station_id: ST-27
-    distance_m: 8.0
+    distance_m: 23.40939982143925
   - from_station_id: ST-27
     to_station_id: ST-28
-    distance_m: 8.0
+    distance_m: 5.0
   - from_station_id: ST-28
     to_station_id: ST-29
-    distance_m: 8.0
+    distance_m: 6.200000000000003
   - from_station_id: ST-29
     to_station_id: ST-30
-    distance_m: 8.0
+    distance_m: 7.399999999999999
   - from_station_id: ST-30
     to_station_id: ST-31
-    distance_m: 8.0
+    distance_m: 8.600000000000001
   - from_station_id: ST-31
     to_station_id: ST-32
-    distance_m: 8.0
+    distance_m: 9.799999999999997
   - from_station_id: ST-32
     to_station_id: ST-33
-    distance_m: 8.0
+    distance_m: 5.0
   - from_station_id: ST-33
     to_station_id: ST-34
-    distance_m: 8.0
+    distance_m: 6.200000000000003
   - from_station_id: ST-34
     to_station_id: ST-35
-    distance_m: 8.0
+    distance_m: 7.400000000000006
   - from_station_id: ST-35
     to_station_id: ST-36
-    distance_m: 8.0
+    distance_m: 8.599999999999994
   - from_station_id: ST-36
     to_station_id: ST-37
-    distance_m: 8.0
+    distance_m: 9.799999999999997
   - from_station_id: ST-37
     to_station_id: ST-38
-    distance_m: 8.0
+    distance_m: 5.0
   - from_station_id: ST-38
     to_station_id: ST-39
-    distance_m: 8.0
+    distance_m: 6.200000000000003
   - from_station_id: ST-39
     to_station_id: ST-40
-    distance_m: 8.0
+    distance_m: 7.400000000000006
   - from_station_id: ST-40
     to_station_id: ST-41
-    distance_m: 8.0
+    distance_m: 8.600000000000009
   - from_station_id: ST-41
     to_station_id: ST-42
-    distance_m: 8.0
+    distance_m: 9.800000000000011
   - from_station_id: ST-16
     to_station_id: ST-43
-    distance_m: 4.0
+    distance_m: 11.280514172678478
   - from_station_id: ST-43
     to_station_id: ST-17
-    distance_m: 4.0
+    distance_m: 11.280514172678478
 environment_envelope:
   temp_min_c: 18.0
   temp_max_c: 26.0

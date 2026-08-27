@@ -93,9 +93,86 @@ as a tetrahedron in the same neutral color as `NOT_APPLICABLE` (neither is
 a fault, so neither earns a beacon color -- shape is what keeps them
 distinguishable, same rule as `NOT_APPLICABLE`'s octahedron).
 
+## Task 3 — Serpentine layout ✅
+
+Replaced the 328m straight ruler (every station at `y_m: 0.0`, uniform 8m
+spacing) with a 3-row serpentine (S-shaped) plant footprint in
+`scripts/gen_example_42.py`'s `build_line()`/new `build_layout()`. Only
+that one function changed -- `build_station()` untouched, so all 42
+station ids, zones, sequence order, sensors, commissioning baselines,
+inspection flags, and cost/value-add figures are byte-identical to
+before. Confirmed via `git diff`: the regenerated
+`data/lines/example_42.yaml` differs from the previous version in exactly
+one hunk, entirely inside the `layout:` block.
+
+Layout: each zone is its own row (`y_m`: body=0, paint=-22, final=-44),
+so the three bays are visually separable by geometry alone. Direction
+alternates row to row (body left-to-right, paint right-to-left, final
+left-to-right again -- the two "turns" that make it an S), and intra-row
+spacing follows a per-zone formula instead of a uniform gap: body cycles
+6.0/7.5/9.0/10.5m, paint cycles 8/10/12m, final cycles
+5.0/6.2/7.4/8.6/9.8m. Every `distance_m` is computed as the actual
+Euclidean distance between its two coordinates, never set independently
+-- the zone-transition segments (ST-16→ST-17: 22.56m, ST-26→ST-27:
+23.41m) come out longer than any in-row gap purely because a transition
+is a full row-to-row corridor turn, not because a number was hand-picked.
+
+Added `test_example_42_segment_distances_match_actual_geometry` to
+`tests/unit/test_config.py`, asserting that invariant for all 41 segments
+in the real `example_42.yaml` -- this is the kind of thing that silently
+drifts if a layout is ever hand-edited instead of regenerated.
+
+Regenerating the golden insert-at-17 fixture
+(`tests/golden/config/example_42_after_insert_at_17.yaml`, approved with
+diff shown first) turned out to be self-consistent for free:
+`insert_station`'s midpoint math (`specs.py:280-287`) places the new
+station exactly halfway between its neighbours, and a midpoint's distance
+to each endpoint is always exactly half the endpoint-to-endpoint
+distance, so the split segments (ST-16→ST-43: 11.28m, ST-43→ST-17:
+11.28m) satisfy the same real-geometry invariant automatically.
+
+**Second, larger blast radius found and fixed, with explicit approval:**
+`datagen/writer.py`'s `simulate_run` computes each car's conveyor transit
+time as `distance / config.conveyor_speed_mps` (`writer.py:177-178`), so
+changing segment distances changes every downstream telemetry/event
+timestamp in any run generated over `example_42.yaml` -- not just the
+`LineSpec` itself. This broke `tests/golden/test_datagen_golden.py`
+(the 400-car run's `ground_truth.json`, documented in that test's own
+docstring as "the answer key every later prompt's Predict/Trace
+correctness gets graded against"), and left two more things stale:
+`backend/data/runs/default_400_car_run/` (the pre-generated run committed
+for Render's startup safety net -- confirmed byte-identical to the golden
+fixture before this fix) and the trained `data/models/risk_v1` (built
+from runs generated over the same line file).
+
+Fixed by regenerating all three from the new layout, in this order:
+`python -m lineage.datagen.cli` (rewrites
+`data/runs/default_400_car_run/{telemetry,events,inspection}.csv` and
+`ground_truth.json`), copying the new `ground_truth.json` over the frozen
+golden fixture, then `scripts/train_risk_model.py` to retrain `risk_v1`.
+Diff-reviewed before finalizing: only timestamps shifted (by single-digit
+to tens of seconds, from the new transit times) -- every defect id,
+mechanism, origin/detection station, exposed car list, and detection
+outcome in `ground_truth.json` is unchanged. `tests/golden/test_spc_golden.py`
+and `tests/golden/test_trace_golden.py` were never at risk: they assert
+behavioral properties (SPC fires within a seeded car-index window, alarm
+rates) against a freshly-generated run each time, not a byte-frozen file.
+
+Notable, reassuring result: the retrained `risk_v1` model came out
+**byte-identical** to what was already committed. Its features are all
+relative to per-station sensor baselines (z-scores, deviation from
+nominal), not absolute conveyor geometry or wall-clock timestamps, so a
+layout change that only shifts timing doesn't touch what the model
+actually learns from.
+
+Verified: `pytest -q` 140/140 (137 baseline + 1 new invariant test + 1
+new NOT_YET_REPORTING regression test from Task 2, plus the datagen
+golden test this task temporarily broke and then fixed), `ruff check .`
+clean, `npx playwright test` 7/8 (same pre-existing, documented
+spawn-tray failure, unrelated to this change).
+
 ## Remaining tasks
 
-3. Serpentine layout regeneration
 4. Shared design token system
 5. 3D Mirror rebuild
 6. Role views: Operator, Floor Supervisor, Plant Manager

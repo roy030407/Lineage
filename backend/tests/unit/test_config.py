@@ -1,6 +1,7 @@
 """Tests for lineage.config (LineSpec/StationSpec/SensorSpec); filled in alongside real logic."""
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -275,3 +276,26 @@ def test_yaml_round_trip(tmp_path):
     reloaded = LineSpec.from_yaml(path)
 
     assert reloaded == line
+
+
+# --- example_42's real layout ---------------------------------------------------
+
+EXAMPLE_42_PATH = Path(__file__).parents[2] / "data" / "lines" / "example_42.yaml"
+
+
+def test_example_42_segment_distances_match_actual_geometry():
+    """distance_m must always be the real Euclidean distance between the two
+    endpoint coordinates, never a value set independently -- exactly the kind
+    of thing that silently drifts once a layout is edited by hand instead of
+    regenerated from coordinates, as example_42's serpentine footprint is."""
+    line = LineSpec.from_yaml(EXAMPLE_42_PATH)
+
+    assert line.layout.segments, "expected at least one segment to check"
+    for segment in line.layout.segments:
+        a = line.layout.coordinate_for(segment.from_station_id)
+        b = line.layout.coordinate_for(segment.to_station_id)
+        actual_distance = ((b.x_m - a.x_m) ** 2 + (b.y_m - a.y_m) ** 2) ** 0.5
+        assert segment.distance_m == pytest.approx(actual_distance), (
+            f"{segment.from_station_id} -> {segment.to_station_id}: "
+            f"distance_m={segment.distance_m} but actual geometry is {actual_distance}"
+        )

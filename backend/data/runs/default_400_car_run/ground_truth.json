@@ -14,19 +14,19 @@
       "defect_id": "material_quality-ST-15-00008",
       "mechanism": "material_quality",
       "origin_station_id": "ST-15",
-      "onset_timestamp": "2024-01-01T00:29:16.032570",
+      "onset_timestamp": "2024-01-01T00:29:17.032570",
       "cars_exposed": [
         "CAR-00008"
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T00:30:40.222900"
+      "detected_at_timestamp": "2024-01-01T00:30:43.222900"
     },
     {
       "defect_id": "torque_drift-ST-06-00050",
       "mechanism": "torque_drift",
       "origin_station_id": "ST-06",
-      "onset_timestamp": "2024-01-01T01:12:30.675350",
+      "onset_timestamp": "2024-01-01T01:12:28.675350",
       "cars_exposed": [
         "CAR-00050",
         "CAR-00051",
@@ -61,31 +61,31 @@
       ],
       "detected": true,
       "detected_at_station_id": "ST-42",
-      "detected_at_timestamp": "2024-01-01T01:58:41.276393"
+      "detected_at_timestamp": "2024-01-01T02:00:02.217250"
     },
     {
       "defect_id": "material_quality-ST-09-00075",
       "mechanism": "material_quality",
       "origin_station_id": "ST-09",
-      "onset_timestamp": "2024-01-01T01:49:21.156935",
+      "onset_timestamp": "2024-01-01T01:49:25.156935",
       "cars_exposed": [
         "CAR-00075"
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T01:58:50.339756"
+      "detected_at_timestamp": "2024-01-01T01:58:53.339756"
     },
     {
       "defect_id": "material_quality-ST-25-00068",
       "mechanism": "material_quality",
       "origin_station_id": "ST-25",
-      "onset_timestamp": "2024-01-01T02:02:55.365643",
+      "onset_timestamp": "2024-01-01T02:03:55.487700",
       "cars_exposed": [
         "CAR-00068"
       ],
       "detected": true,
       "detected_at_station_id": "ST-26",
-      "detected_at_timestamp": "2024-01-01T02:04:24.484050"
+      "detected_at_timestamp": "2024-01-01T02:05:32.606107"
     },
     {
       "defect_id": "material_quality-ST-01-00111",
@@ -97,25 +97,25 @@
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T02:46:02.185952"
+      "detected_at_timestamp": "2024-01-01T02:46:05.185952"
     },
     {
       "defect_id": "material_quality-ST-15-00114",
       "mechanism": "material_quality",
       "origin_station_id": "ST-15",
-      "onset_timestamp": "2024-01-01T02:48:38.651503",
+      "onset_timestamp": "2024-01-01T02:48:39.651503",
       "cars_exposed": [
         "CAR-00114"
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T02:50:01.730921"
+      "detected_at_timestamp": "2024-01-01T02:50:04.730921"
     },
     {
       "defect_id": "environmental_excursion-ST-25-00150",
       "mechanism": "environmental_excursion",
       "origin_station_id": "ST-25",
-      "onset_timestamp": "2024-01-01T03:50:49.335721",
+      "onset_timestamp": "2024-01-01T03:51:49.457778",
       "cars_exposed": [
         "CAR-00150",
         "CAR-00151",
@@ -141,13 +141,13 @@
       ],
       "detected": true,
       "detected_at_station_id": "ST-26",
-      "detected_at_timestamp": "2024-01-01T03:52:13.758133"
+      "detected_at_timestamp": "2024-01-01T03:53:21.880190"
     },
     {
       "defect_id": "operator_handover_shift-ST-02-00200",
       "mechanism": "operator_handover_shift",
       "origin_station_id": "ST-02",
-      "onset_timestamp": "2024-01-01T04:24:36.333489",
+      "onset_timestamp": "2024-01-01T04:24:32.333489",
       "cars_exposed": [
         "CAR-00200",
         "CAR-00201",
@@ -352,73 +352,73 @@
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T04:43:14.504478"
+      "detected_at_timestamp": "2024-01-01T04:43:17.504478"
     },
     {
       "defect_id": "material_quality-ST-35-00175",
       "mechanism": "material_quality",
       "origin_station_id": "ST-35",
-      "onset_timestamp": "2024-01-01T04:35:36.852109",
+      "onset_timestamp": "2024-01-01T04:36:58.992966",
       "cars_exposed": [
         "CAR-00175"
       ],
       "detected": true,
       "detected_at_station_id": "ST-42",
-      "detected_at_timestamp": "2024-01-01T04:43:18.991487"
+      "detected_at_timestamp": "2024-01-01T04:44:39.932344"
     },
     {
       "defect_id": "material_quality-ST-38-00224",
       "mechanism": "material_quality",
       "origin_station_id": "ST-38",
-      "onset_timestamp": "2024-01-01T05:43:19.843905",
+      "onset_timestamp": "2024-01-01T05:44:40.784762",
       "cars_exposed": [
         "CAR-00224"
       ],
       "detected": true,
       "detected_at_station_id": "ST-42",
-      "detected_at_timestamp": "2024-01-01T05:47:44.876504"
+      "detected_at_timestamp": "2024-01-01T05:49:05.817361"
     },
     {
       "defect_id": "material_quality-ST-07-00335",
       "mechanism": "material_quality",
       "origin_station_id": "ST-07",
-      "onset_timestamp": "2024-01-01T07:28:59.891148",
+      "onset_timestamp": "2024-01-01T07:28:56.891148",
       "cars_exposed": [
         "CAR-00335"
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T07:41:04.311609"
+      "detected_at_timestamp": "2024-01-01T07:41:07.311609"
     },
     {
       "defect_id": "material_quality-ST-16-00337",
       "mechanism": "material_quality",
       "origin_station_id": "ST-16",
-      "onset_timestamp": "2024-01-01T07:43:44.134013",
+      "onset_timestamp": "2024-01-01T07:43:47.134013",
       "cars_exposed": [
         "CAR-00337"
       ],
       "detected": true,
       "detected_at_station_id": "ST-26",
-      "detected_at_timestamp": "2024-01-01T07:58:29.967161"
+      "detected_at_timestamp": "2024-01-01T07:59:38.089218"
     },
     {
       "defect_id": "material_quality-ST-14-00364",
       "mechanism": "material_quality",
       "origin_station_id": "ST-14",
-      "onset_timestamp": "2024-01-01T08:16:30.253229",
+      "onset_timestamp": "2024-01-01T08:16:32.253229",
       "cars_exposed": [
         "CAR-00364"
       ],
       "detected": true,
       "detected_at_station_id": "ST-16",
-      "detected_at_timestamp": "2024-01-01T08:19:14.386742"
+      "detected_at_timestamp": "2024-01-01T08:19:17.386742"
     },
     {
       "defect_id": "material_quality-ST-42-00342",
       "mechanism": "material_quality",
       "origin_station_id": "ST-42",
-      "onset_timestamp": "2024-01-01T08:23:08.261841",
+      "onset_timestamp": "2024-01-01T08:24:29.202698",
       "cars_exposed": [
         "CAR-00342"
       ],
