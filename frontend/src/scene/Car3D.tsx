@@ -91,6 +91,7 @@ export function Car3D({
     <instancedMesh
       ref={meshRef}
       args={[undefined, undefined, MAX_CARS]}
+      userData={{ lineageKind: "car" }}
       // Three.js culls an InstancedMesh using a bounding sphere around the
       // *object's own* local origin, ignoring per-instance transforms --
       // with cars scattered across a 300m+ line via setMatrixAt, that check

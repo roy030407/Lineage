@@ -14,4 +14,10 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    // e2e/ holds Playwright specs (a different test() API entirely, run via
+    // `npx playwright test`) -- vitest's default glob would otherwise also
+    // try to collect and run them as unit tests and fail to parse them.
+    exclude: ["e2e/**", "node_modules/**"],
+  },
 });

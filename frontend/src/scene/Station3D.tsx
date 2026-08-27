@@ -45,7 +45,10 @@ export function Station3D({ stationId, x, z, sensorHealth, machineHealth, isSele
   );
 
   return (
-    <group position={[x, BLOCK_SIZE[1] / 2, z]}>
+    <group
+      position={[x, BLOCK_SIZE[1] / 2, z]}
+      userData={{ lineageKind: "station", stationId }}
+    >
       <mesh
         castShadow
         receiveShadow

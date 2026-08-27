@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 import { useLineageStore } from "../state/store";
+import { setTestScene } from "../testHooks";
 import { Line3D } from "./Line3D";
 
 const FOUNDRY = "#22231f";
@@ -87,6 +88,7 @@ export function Scene() {
       shadows
       camera={{ position: [40, 60, 120], fov: 45, near: 0.1, far: 5000 }}
       style={{ background: FOUNDRY }}
+      onCreated={(state) => setTestScene(state.scene)}
     >
       <ambientLight intensity={0.6} />
       <directionalLight

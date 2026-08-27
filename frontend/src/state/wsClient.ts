@@ -4,6 +4,7 @@
 // recover from a transient disconnect.
 
 import { useLineageStore } from "./store";
+import { recordTick } from "../testHooks";
 import type { LineState } from "./types";
 
 const RECONNECT_DELAY_MS = 2000;
@@ -30,6 +31,7 @@ export function connectLineWebSocket(): () => void {
     socket.onmessage = (event) => {
       const state = JSON.parse(event.data) as LineState;
       useLineageStore.getState().applyLineState(state);
+      recordTick();
     };
 
     socket.onclose = () => {

@@ -4,7 +4,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import App from "./App";
+import { initTestHooks } from "./testHooks";
 import "./styles/tokens.css";
+
+initTestHooks();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
