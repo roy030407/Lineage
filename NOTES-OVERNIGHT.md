@@ -234,9 +234,90 @@ spawn-tray failure), plus a manual Playwright-driven visual check of the
 Mirror (serpentine layout + lamp shapes) and the Operator/Floor Supervisor
 views (status badges) against the running dev server.
 
+## DESIGN.md added
+
+The design plan behind Tasks 1-4 was approved in conversation during
+Prompt A and never written down -- it got lost to context compaction
+partway through this branch. Added `DESIGN.md` at repo root as the
+durable fix: palette/type/status vocabulary documented from what's
+already implemented in `styles/tokens.ts`, and the Mirror wireframe,
+Builder wireframe, node anatomy, and signature element (none of which
+existed in any file) proposed fresh and approved before Task 5's rebuild
+started. Tasks 6 and 8 should cite `DESIGN.md`, not "the approved plan."
+
+## Task 5 — 3D Mirror rebuild ✅
+
+Rebuilt `Station3D.tsx`, `Line3D.tsx`, `Scene.tsx`, `Car3D.tsx` per
+`DESIGN.md`.
+
+**Signature element:** the beacon mast. Station lamps moved from sitting
+directly on the block roof to the top of a thin mast rising above it. A
+station in a fault state now also emits a light beam rising further into
+the sky -- and per explicit direction, the two fault beams are
+deliberately distinct, not the same red column with a different label:
+a sensor fault gets a narrow, steady cone (`SensorFaultBeam`); a machine
+fault gets a wider, tapered cylinder pulsing via `useFrame`
+(`MachineFaultBeam`). Colour is never the only signal, one level up from
+the lamp shapes themselves. Verified visually against the live default
+run (screenshot): masts, lamp clusters, and a lit fault beam all render
+as designed.
+
+**Zone identity:** floating `BODY`/`PAINT`/`FINAL` text labels added
+above the first station of each zone's row (`Line3D.tsx`'s
+`zoneLabelPositions`), on top of the row-separation geometry from Task 3
+-- verified in the same screenshot.
+
+**Hover tooltip:** `Station3D.tsx` now tracks hover state and renders a
+`drei` `Html`-anchored tooltip reusing the actual `StatusBadge` component
+(not a reimplementation) plus latest readings. Required threading
+`stationName` and `latestReadings` through as new `Station3D` props from
+`Line3D.tsx`. Verified via a precise computed-position hover (DOM text
+extraction confirmed real badge/label content renders).
+
+**Follow mode:** clicking a car already engaged follow mode, but there
+was no visible indication it had happened and no way back to free orbit.
+Added `FollowIndicator` in `Scene.tsx` -- a "Following CAR-XXXXX · Stop"
+overlay, calling the existing `followCar(null)` action. Verified live: a
+car click amber-highlights the followed car, the indicator appears, and
+Stop clears it.
+
+**Car-click raycasting bug -- diagnosed and fixed, confirmed distinct
+from the earlier occlusion issue.** Root cause (full diagnosis in
+`DESIGN.md`): `InstancedMesh.raycast()` broad-phase-rejects against
+`this.boundingSphere`, cached once on the *first* raycast call from
+whatever instance transforms existed at that moment, and never
+recomputed as `Car3D`'s `useFrame` moves every instance every frame --
+so it silently missed every subsequent click and hover, on every car,
+always. Confirmed empirically: a paused-replay, pixel-precise hover sweep
+across the car's own bounding box produced zero hits anywhere, ruling
+out an occlusion/z-order theory before it ruled anything in; adding
+`mesh.computeBoundingSphere()` once per frame (`Car3D.tsx`) fixed it
+immediately, verified via a real click opening `CarPanel`. This is a
+sibling of the earlier `frustumCulled={false}` fix (same three.js gotcha
+-- a per-object cached bounding volume ignoring per-instance updates),
+not the same bug resurfacing: that one is `Object3D`'s own bounding
+sphere for render-time frustum culling; this is
+`InstancedMesh.raycast()`'s separate cached sphere for hit-testing.
+
+**Regression guard, deliberately hard to defeat:** added "clicking a car
+opens its panel (raycast regression guard)" to `e2e/smoke.spec.ts`. It
+clicks a car's exact screen-projected position while replay is actively
+*playing* (never paused) -- a paused-replay test would still pass if
+`computeBoundingSphere()` were deleted, since a stationary car's
+stale-at-mount bounding sphere still happens to cover wherever it's
+stopped. Verified the guard actually guards: manually deleted the
+`computeBoundingSphere()` call, confirmed the new test fails (and only
+that test), restored the call, confirmed it passes again.
+`camera`/`renderer` added to `window.__lineageTest` (`testHooks.ts`) so
+the test can compute the car's exact screen pixel rather than guessing.
+
+Verified: `pytest -q` 140/140 (unaffected), `ruff check .` clean,
+`tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
+`npx playwright test` 8/9 (was 7/8: +1 new regression test passing; same
+pre-existing documented spawn-tray gap, unrelated).
+
 ## Remaining tasks
 
-5. 3D Mirror rebuild
 6. Role views: Operator, Floor Supervisor, Plant Manager
 7. Leadership ROI backend + view
 8. Node-graph Builder canvas

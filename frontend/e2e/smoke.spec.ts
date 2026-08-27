@@ -98,6 +98,91 @@ test("at least one car mesh exists, positioned strictly above the station block 
   expect(result.maxY).toBeGreaterThan(STATION_TOP_Y);
 });
 
+// Self-contained per the same serialization rule as hasActiveCar/carMeshState
+// above. camera/renderer are exposed on window.__lineageTest specifically so
+// this can compute the exact screen-space pixel a moving car occupies --
+// see testHooks.ts's comment on why.
+function findActiveCarScreenPosition(): { x: number; y: number } | null {
+  const hook = window.__lineageTest;
+  const scene = hook?.scene;
+  const camera = hook?.camera;
+  const renderer = hook?.renderer;
+  if (!scene || !camera || !renderer) return null;
+
+  let carMesh: unknown = null;
+  scene.traverse((obj) => {
+    if (obj.userData?.lineageKind === "car" && !carMesh) carMesh = obj;
+  });
+  const mesh = carMesh as { instanceMatrix?: { array: ArrayLike<number> }; count?: number } | null;
+  if (!mesh || !mesh.instanceMatrix || mesh.count === undefined) return null;
+
+  const arr = mesh.instanceMatrix.array;
+  for (let i = 0; i < mesh.count; i++) {
+    const y = arr[i * 16 + 13];
+    if (y <= -500) continue; // HIDDEN_POSITION.y is -1000
+    const x = arr[i * 16 + 12];
+    const z = arr[i * 16 + 14];
+    // camera.position's own constructor gives us a real THREE.Vector3 to
+    // call .project() on, without needing THREE exposed as a global.
+    const Vector3 = Object.getPrototypeOf(camera.position).constructor as new (
+      x: number,
+      y: number,
+      z: number,
+    ) => { project: (c: unknown) => { x: number; y: number } };
+    const projected = new Vector3(x, y, z).project(camera);
+    const rect = renderer.domElement.getBoundingClientRect();
+    return {
+      x: rect.left + (projected.x * 0.5 + 0.5) * rect.width,
+      y: rect.top + (-projected.y * 0.5 + 0.5) * rect.height,
+    };
+  }
+  return null;
+}
+
+test("clicking a car opens its panel (raycast regression guard)", async ({ page }) => {
+  // Regression guard for a real, previously-shipped bug: InstancedMesh's
+  // raycast() broad-phase-rejects against a boundingSphere cached once, on
+  // first raycast, and never recomputed as setMatrixAt moves cars every
+  // frame -- Car3D.tsx now calls mesh.computeBoundingSphere() every frame
+  // to keep it valid (see that file's comment, and DESIGN.md's diagnosis).
+  // That one-line call is exactly the kind of thing a future "optimize the
+  // render loop" pass deletes with no type error and every *other* test
+  // still green -- the same failure profile as the original occlusion bug.
+  // The only test that can catch its removal is one that clicks a car
+  // while it's actually moving: global-setup.ts already loads and plays
+  // the default run at 60x, and this test deliberately never pauses it. A
+  // paused-replay click would still pass with the fix reverted, since a
+  // stationary car's stale-at-mount bounding sphere still happens to cover
+  // wherever it's stopped.
+  await page.goto("/");
+  await page
+    .waitForFunction(hasActiveCar, undefined, { timeout: 15_000, polling: 250 })
+    .catch(() => {});
+
+  // A few retries absorb ordinary timing flakiness (the car keeps moving
+  // between computing its screen position and the click landing) without
+  // weakening the guard: if the underlying bug were reintroduced, every
+  // attempt would miss identically, since the mesh wouldn't be raycastable
+  // at all, not just momentarily mispositioned.
+  // CarPanel renders its "CAR-XXXXX" heading synchronously the moment a car
+  // is selected -- "Stations visited" only appears after the twin-history
+  // fetch resolves, which is a real network round trip and not what this
+  // test is guarding. Checking the heading confirms the click was received
+  // by the car mesh (the actual regression) without depending on that fetch.
+  let opened = false;
+  for (let attempt = 0; attempt < 5 && !opened; attempt++) {
+    const target = await page.evaluate(findActiveCarScreenPosition);
+    if (!target) continue;
+    await page.mouse.click(target.x, target.y);
+    opened = await page
+      .getByRole("heading", { level: 2, name: /^CAR-\d+$/ })
+      .isVisible({ timeout: 1_000 })
+      .catch(() => false);
+  }
+
+  expect(opened).toBe(true);
+});
+
 test.describe("role views render their own distinctive content", () => {
   test("Operator shows exactly one station, not the whole line", async ({ page }) => {
     await page.goto("/");

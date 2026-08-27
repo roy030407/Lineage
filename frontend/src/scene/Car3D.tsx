@@ -85,6 +85,19 @@ export function Car3D({
 
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    // InstancedMesh.raycast() broad-phase-rejects against `this.boundingSphere`
+    // -- a bounding volume cached on the mesh itself, computed once, lazily,
+    // on the FIRST raycast call, from whatever instance transforms existed at
+    // that moment. Every instance's transform changes every frame here, but
+    // nothing recomputed that cached sphere, so it went permanently stale and
+    // silently ate every click/hover on every car: a real, shipped bug, not a
+    // hypothetical (see DESIGN.md's raycasting diagnosis). This is a distinct
+    // failure mode from frustumCulled above -- that's Object3D's own
+    // bounding-sphere check for render-time culling; this is
+    // InstancedMesh.raycast()'s separate cached sphere for hit-testing. Both
+    // are the same underlying three.js gotcha (a per-object cached bounding
+    // volume that ignores per-instance updates), so both need their own fix.
+    mesh.computeBoundingSphere();
   });
 
   return (

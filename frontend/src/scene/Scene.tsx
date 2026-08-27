@@ -79,28 +79,62 @@ function CameraRig({ controlsRef }: { controlsRef: React.RefObject<ElementRef<ty
   return null;
 }
 
+/** Follow mode has no visible indication otherwise, and no way back to free
+ * orbit -- clicking a car engages it (see Line3D's onSelectCar), but a
+ * judge (or anyone) who does that has no way to tell it happened, or to
+ * stop. */
+function FollowIndicator() {
+  const followedCarId = useLineageStore((s) => s.followedCarId);
+  const followCar = useLineageStore((s) => s.followCar);
+
+  if (!followedCarId) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: "var(--space-4)",
+        bottom: "var(--space-4)",
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-3)",
+        padding: "var(--space-2) var(--space-4)",
+        background: "var(--color-cast-steel)",
+        color: "var(--color-vellum)",
+        borderRadius: "2px",
+      }}
+    >
+      <span className="eyebrow">Following {followedCarId}</span>
+      <button onClick={() => followCar(null)}>Stop</button>
+    </div>
+  );
+}
+
 export function Scene() {
   const controlsRef = useRef<ElementRef<typeof OrbitControls>>(null);
 
   return (
-    <Canvas
-      shadows
-      camera={{ position: [40, 60, 120], fov: 45, near: 0.1, far: 5000 }}
-      style={{ background: PALETTE.foundry }}
-      onCreated={(state) => setTestScene(state.scene)}
-    >
-      <ambientLight intensity={0.6} />
-      <directionalLight
-        position={[80, 120, 40]}
-        intensity={1.1}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <Line3D />
-      <OrbitControls ref={controlsRef} makeDefault minDistance={5} maxDistance={2000} maxPolarAngle={Math.PI / 2.05} />
-      <InitialFraming controlsRef={controlsRef} />
-      <CameraRig controlsRef={controlsRef} />
-    </Canvas>
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <Canvas
+        shadows
+        camera={{ position: [40, 60, 120], fov: 45, near: 0.1, far: 5000 }}
+        style={{ background: PALETTE.foundry }}
+        onCreated={(state) => setTestScene(state.scene, state.camera, state.gl)}
+      >
+        <ambientLight intensity={0.6} />
+        <directionalLight
+          position={[80, 120, 40]}
+          intensity={1.1}
+          castShadow
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+        />
+        <Line3D />
+        <OrbitControls ref={controlsRef} makeDefault minDistance={5} maxDistance={2000} maxPolarAngle={Math.PI / 2.05} />
+        <InitialFraming controlsRef={controlsRef} />
+        <CameraRig controlsRef={controlsRef} />
+      </Canvas>
+      <FollowIndicator />
+    </div>
   );
 }

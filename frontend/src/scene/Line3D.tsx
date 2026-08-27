@@ -3,14 +3,26 @@
 // since positions come straight from the real coordinate data, never a
 // synthetic grid.
 
+import { Text } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
 
 import { useLineageStore } from "../state/store";
-import type { StationCoordinate, StationState } from "../state/types";
+import type { StationCoordinate, StationState, Zone } from "../state/types";
 import { PALETTE } from "../styles/tokens";
 import { Car3D } from "./Car3D";
 import { Station3D } from "./Station3D";
+
+const ZONE_LABEL_TEXT: Record<Zone, string> = { body: "BODY", paint: "PAINT", final: "FINAL" };
+const ZONE_LABEL_HEIGHT = 4.5; // clears the beacon masts (see Station3D) so it reads as a row header, not clutter
+
+function ZoneLabel({ zone, x, z }: { zone: Zone; x: number; z: number }) {
+  return (
+    <Text position={[x, ZONE_LABEL_HEIGHT, z]} fontSize={1.1} color={PALETTE.vellum} anchorX="left" anchorY="middle">
+      {ZONE_LABEL_TEXT[zone]}
+    </Text>
+  );
+}
 
 function ConveyorSegment3D({ from, to }: { from: StationCoordinate; to: StationCoordinate }) {
   const { position, length, angle } = useMemo(() => {
@@ -86,10 +98,32 @@ export function Line3D() {
     return map;
   }, [lineState]);
 
+  // First station (by sequence order) in each zone, so its label anchors
+  // the start of that zone's row -- zone identity should read from the
+  // geometry at a glance, not require hunting for a station ID.
+  const zoneLabelPositions = useMemo(() => {
+    if (!lineSpec) return [];
+    const ordered = [...lineSpec.stations].sort((a, b) => a.sequence_index - b.sequence_index);
+    const seen = new Set<Zone>();
+    const positions: { zone: Zone; x: number; z: number }[] = [];
+    for (const station of ordered) {
+      if (seen.has(station.zone)) continue;
+      const coord = coordinatesByStation.get(station.id);
+      if (!coord) continue;
+      seen.add(station.zone);
+      positions.push({ zone: station.zone, x: coord.x_m, z: coord.y_m });
+    }
+    return positions;
+  }, [lineSpec, coordinatesByStation]);
+
   if (!lineSpec) return null;
 
   return (
     <group>
+      {zoneLabelPositions.map(({ zone, x, z }) => (
+        <ZoneLabel key={zone} zone={zone} x={x} z={z} />
+      ))}
+
       {lineSpec.layout.segments.map((segment) => {
         const from = coordinatesByStation.get(segment.from_station_id);
         const to = coordinatesByStation.get(segment.to_station_id);
@@ -111,10 +145,12 @@ export function Line3D() {
           <Station3D
             key={station.id}
             stationId={station.id}
+            stationName={station.name}
             x={coord.x_m}
             z={coord.y_m}
             sensorHealth={state.sensor_health}
             machineHealth={state.machine_health}
+            latestReadings={state.latest_readings}
             isSelected={selectedStationId === station.id}
           />
         );
