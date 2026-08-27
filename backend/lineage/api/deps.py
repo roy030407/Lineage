@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from lineage.act.ledger import AuditLedger
+from lineage.act.models import Proposal
 from lineage.config.specs import LineSpec
 from lineage.predict.ledger import PredictionLedger
 from lineage.replay.engine import ReplayEngine
@@ -55,6 +57,25 @@ class AppState:
         gitignored (a locally-trained artifact, not committed), so a fresh
         clone or CI environment legitimately has none. See
         api/routes/predict.py."""
+        self.act_proposals: list[Proposal] | None = None
+        """Built lazily on first request to GET /api/act/proposals, then
+        cached here (same reasoning as prediction_ledger: real per-car Trace
+        work, not free) so approving one by id later in the same loaded run
+        finds the same object, not a freshly regenerated uuid. Reset to None
+        on every new 'load'. See api/routes/act.py."""
+        self.audit_ledger = AuditLedger()
+        """Append-only record of every Act proposal decision. NOT reset on a
+        new 'load' -- unlike the caches above, an audit trail of what was
+        actually approved is exactly the kind of thing that should survive
+        switching runs, not be silently dropped."""
+        self.issue_assignments: dict[str, str] = {}
+        """issue_id (a station_id or car_id from the Floor Supervisor alert
+        queue) -> operator_id. A minimal, in-memory assignment record, not a
+        real auth/session system -- there is no live operator login in this
+        prototype, so operator_id is whatever the floor supervisor types
+        (typically one of datagen's OP-{station}-A/B ids). Reset on a new
+        'load', same as the caches above: an assignment refers to a specific
+        run's alert, which no longer exists once that run is gone."""
 
 
 _state: AppState | None = None

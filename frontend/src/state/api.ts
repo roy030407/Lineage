@@ -4,6 +4,7 @@
 // so paths stay relative exactly as before: the vite dev server proxies
 // /api to the backend locally, no CORS handling needed there either way.
 import type {
+  AuditRecord,
   CarTwin,
   FloorSupervisorView,
   LeadershipView,
@@ -11,6 +12,7 @@ import type {
   LineSpec,
   OperatorView,
   PlantManagerView,
+  Proposal,
   ReplayControlRequest,
   RunSummary,
   StationSpec,
@@ -113,6 +115,37 @@ export function moveBuilderStation(
 
 export function saveBuilderDraft(filename: string): Promise<{ ok: boolean; filename: string }> {
   return postJson<{ ok: boolean; filename: string }>("/api/builder/save", { filename });
+}
+
+export function assignIssue(
+  issueId: string,
+  operatorId: string,
+): Promise<Record<string, string>> {
+  return postJson<Record<string, string>>("/api/floor_supervisor/assignments", {
+    issue_id: issueId,
+    operator_id: operatorId,
+  });
+}
+
+export async function unassignIssue(issueId: string): Promise<Record<string, string>> {
+  const response = await fetch(
+    `${API_BASE}/api/floor_supervisor/assignments/${encodeURIComponent(issueId)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    throw new Error(`unassign issue failed: ${response.status}`);
+  }
+  return (await response.json()) as Record<string, string>;
+}
+
+export function listActProposals(): Promise<Proposal[]> {
+  return getJson<Proposal[]>("/api/act/proposals");
+}
+
+export function approveActProposal(proposalId: string, approverId: string): Promise<AuditRecord> {
+  return postJson<AuditRecord>(`/api/act/proposals/${encodeURIComponent(proposalId)}/approve`, {
+    approver_id: approverId,
+  });
 }
 
 export function getPredictMetrics(): Promise<LedgerMetrics> {

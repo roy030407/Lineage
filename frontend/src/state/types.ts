@@ -212,9 +212,66 @@ export interface LineSummary {
   average_upstream_buffer_depth: number;
 }
 
+export interface SPCAlarm {
+  station_id: string;
+  quantity: string;
+  state: SPCState;
+  rule_triggered: string | null;
+  confidence: number;
+}
+
+export interface HighRiskCar {
+  car_id: string;
+  current_station_id: string;
+  next_inspection_station_id: string;
+  stations_remaining: number;
+  risk_level: RiskLevel;
+  probability: number | null;
+  confidence: number;
+}
+
+export type BottleneckState = "starved" | "blocked" | "healthy";
+
+export interface BottleneckForecast {
+  station_id: string;
+  predicted_state: BottleneckState;
+  minutes_to_onset: number | null;
+  confidence: number;
+  contributing_upstream_station: string | null;
+}
+
 export interface FloorSupervisorView {
   line_state: LineState;
   active_alert_station_ids: string[];
+  spc_alarms: SPCAlarm[];
+  high_risk_cars: HighRiskCar[];
+  bottleneck_warnings: BottleneckForecast[];
+  issue_assignments: Record<string, string>;
+}
+
+export type ApproverRole = "operator" | "floor_supervisor" | "plant_manager" | "leadership";
+export type ProposalStatus = "pending" | "approved" | "rejected";
+
+export interface Proposal {
+  proposal_id: string;
+  station_id: string;
+  parameter_name: string;
+  current_value: number;
+  proposed_value: number;
+  rationale: string;
+  trace_car_id: string;
+  requires_physical_change: boolean;
+  next_maintenance_window: string | null;
+  status: ProposalStatus;
+}
+
+export interface AuditRecord {
+  proposal_id: string;
+  approver_role: ApproverRole;
+  approver_id: string;
+  decision: string;
+  timestamp: string;
+  proposal_snapshot: Proposal;
 }
 
 export interface PlantManagerView {

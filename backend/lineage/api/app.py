@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from lineage.api.deps import DEFAULT_LINE_PATH, RUNS_ROOT, get_app_state
+from lineage.api.routes.act import router as act_router
 from lineage.api.routes.builder import router as builder_router
 from lineage.api.routes.line import router as line_router
 from lineage.api.routes.mirror import router as mirror_router
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(views_router)
     app.include_router(builder_router)
     app.include_router(predict_router)
+    app.include_router(act_router)
     return app
 
 

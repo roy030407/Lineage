@@ -198,10 +198,17 @@ test.describe("role views render their own distinctive content", () => {
     expect(rows).toBeLessThan(10);
   });
 
-  test("Floor Supervisor shows the full line plus an alert count", async ({ page }) => {
+  test("Floor Supervisor shows the full line plus the live alert queue", async ({ page }) => {
     await page.goto("/");
     await page.selectOption('select[aria-label="Select role view"]', "floor_supervisor");
     await expect(page.getByText(/Active alerts \(/)).toBeVisible();
+    // The live alert queue itself -- SPC alarms, high-risk cars, bottleneck
+    // warnings -- is Floor-Supervisor-only content; its presence (a count
+    // label always renders, even at zero) is what rules out a shared
+    // fallback rendering the same thing every other view does.
+    await expect(page.getByText(/SPC alarms \(/)).toBeVisible();
+    await expect(page.getByText(/High-risk cars \(/)).toBeVisible();
+    await expect(page.getByText(/Bottleneck warnings \(/)).toBeVisible();
     const rows = await page.locator("table tbody tr").count();
     expect(rows).toBeGreaterThan(30);
   });

@@ -62,6 +62,11 @@ def replay_control(req: ReplayControlRequest, state: AppState = Depends(get_app_
         # ledger cached for a previously-loaded run.
         state.current_run_dir = run_dir
         state.prediction_ledger = None
+        # Same reasoning: real per-car work, built lazily by api/routes/act.py
+        # on first request, and an assignment refers to a specific run's
+        # alert that no longer exists once that run is gone.
+        state.act_proposals = None
+        state.issue_assignments = {}
 
         return {"ok": True}
 
@@ -78,7 +83,16 @@ def replay_control(req: ReplayControlRequest, state: AppState = Depends(get_app_
     elif req.action == "seek":
         if req.timestamp is None:
             raise HTTPException(status_code=400, detail="timestamp required for 'seek'")
-        state.engine.seek(req.timestamp)
+        # Also pushed into snapshot_history, not just returned -- the
+        # background tick loop is the only other thing that ever pushes a
+        # snapshot, and only while playing, once per real second. Without
+        # this, a seek immediately followed by a role-view poll (exactly
+        # what scrubbing the replay position and checking a view does) can
+        # read a stale pre-seek snapshot for up to a second, a real bug
+        # found while adding the Floor Supervisor alert queue, which is
+        # seek-sensitive in exactly this way.
+        line_state = state.engine.seek(req.timestamp)
+        state.snapshot_history.push(line_state)
     elif req.action == "set_speed":
         if req.speed_multiplier is None:
             raise HTTPException(status_code=400, detail="speed_multiplier required for 'set_speed'")

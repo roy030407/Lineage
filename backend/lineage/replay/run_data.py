@@ -25,11 +25,33 @@ class RunData:
 
         self.start_time: datetime = self._telemetry.timestamp.min().to_pydatetime()
 
+        # Every per-station query below used to filter the full, ever-growing
+        # telemetry/events frame from scratch -- fine at the scale the
+        # original single-station queries ran at, but a real, measured cost
+        # once a live view (Floor Supervisor's SPC alarm feed) started asking
+        # this per-station question for every station on every poll: ~0.86s
+        # across 42 stations against a 2-hour-in 400-car run, unindexed.
+        # Grouping once here means each per-station query only filters that
+        # station's own, much smaller slice.
+        self._empty_telemetry = self._telemetry.iloc[0:0]
+        self._telemetry_by_station: dict[str, pd.DataFrame] = dict(
+            tuple(self._telemetry.groupby("station_id"))
+        )
+        self._empty_events = self._events.iloc[0:0]
+        self._events_by_station: dict[str, pd.DataFrame] = dict(
+            tuple(self._events.groupby("station_id"))
+        )
+
+    def _telemetry_for(self, station_id: str) -> pd.DataFrame:
+        return self._telemetry_by_station.get(station_id, self._empty_telemetry)
+
+    def _events_for(self, station_id: str) -> pd.DataFrame:
+        return self._events_by_station.get(station_id, self._empty_events)
+
     def car_at_station_at(self, station_id: str, timestamp: datetime) -> str | None:
-        rows = self._events[
-            (self._events.station_id == station_id)
-            & (self._events.event_type.isin(["car_entry", "car_exit"]))
-            & (self._events.timestamp <= timestamp)
+        events = self._events_for(station_id)
+        rows = events[
+            events.event_type.isin(["car_entry", "car_exit"]) & (events.timestamp <= timestamp)
         ]
         if rows.empty:
             return None
@@ -37,11 +59,8 @@ class RunData:
         return str(last.car_id) if last.event_type == "car_entry" else None
 
     def buffer_depth_at(self, station_id: str, timestamp: datetime) -> int:
-        rows = self._events[
-            (self._events.station_id == station_id)
-            & (self._events.event_type == "buffer_depth")
-            & (self._events.timestamp <= timestamp)
-        ]
+        events = self._events_for(station_id)
+        rows = events[(events.event_type == "buffer_depth") & (events.timestamp <= timestamp)]
         if rows.empty:
             return 0
         detail = json.loads(rows.iloc[-1].detail)
@@ -56,9 +75,8 @@ class RunData:
         "stopped reporting" fault)."""
         if not station.sensors:
             return SensorHealth.NOT_APPLICABLE
-        rows = self._telemetry[
-            (self._telemetry.station_id == station.id) & (self._telemetry.timestamp <= timestamp)
-        ]
+        rows = self._telemetry_for(station.id)
+        rows = rows[rows.timestamp <= timestamp]
         if rows.empty:
             return SensorHealth.NOT_YET_REPORTING
         last_ts = rows.iloc[-1].timestamp.to_pydatetime()
@@ -70,9 +88,8 @@ class RunData:
         manual quantities) at or before `timestamp` -- one entry per
         sensor_id that has reported at all so far, none for one that
         hasn't (never a fabricated placeholder value)."""
-        rows = self._telemetry[
-            (self._telemetry.station_id == station.id) & (self._telemetry.timestamp <= timestamp)
-        ]
+        rows = self._telemetry_for(station.id)
+        rows = rows[rows.timestamp <= timestamp]
         if rows.empty:
             return []
         latest_per_sensor = rows.sort_values("timestamp").groupby("sensor_id").tail(1)
@@ -95,10 +112,10 @@ class RunData:
         in-progress, not just its latest single reading. `quantity` matches
         either a sensor_id or a manual reading's quantity name, same as
         predict/risk.py's history builder."""
-        rows = self._telemetry[
-            (self._telemetry.station_id == station_id)
-            & (self._telemetry.timestamp <= up_to)
-            & ((self._telemetry.sensor_id == quantity) | (self._telemetry.quantity == quantity))
+        telemetry = self._telemetry_for(station_id)
+        rows = telemetry[
+            (telemetry.timestamp <= up_to)
+            & ((telemetry.sensor_id == quantity) | (telemetry.quantity == quantity))
         ].sort_values("timestamp")
         return [
             (row.timestamp.to_pydatetime(), float(row.value), str(row.car_id))
@@ -109,10 +126,9 @@ class RunData:
         """Every shift-change event at `station_id` at or before `up_to`,
         oldest first, as (timestamp, handover_flagged) -- what evaluate_spc
         needs to know when a manual station's recalibration window started."""
-        rows = self._events[
-            (self._events.station_id == station_id)
-            & (self._events.event_type == "shift_change")
-            & (self._events.timestamp <= up_to)
+        events = self._events_for(station_id)
+        rows = events[
+            (events.event_type == "shift_change") & (events.timestamp <= up_to)
         ].sort_values("timestamp")
         return [
             (row.timestamp.to_pydatetime(), bool(json.loads(row.detail)["handover_flagged"]))
@@ -120,10 +136,9 @@ class RunData:
         ]
 
     def machine_is_maintained(self, station: StationSpec, timestamp: datetime) -> bool:
-        maintenance_events = self._events[
-            (self._events.station_id == station.id)
-            & (self._events.event_type == "maintenance")
-            & (self._events.timestamp <= timestamp)
+        events = self._events_for(station.id)
+        maintenance_events = events[
+            (events.event_type == "maintenance") & (events.timestamp <= timestamp)
         ]
         if not maintenance_events.empty:
             last_maintenance = maintenance_events.iloc[-1].timestamp.to_pydatetime()

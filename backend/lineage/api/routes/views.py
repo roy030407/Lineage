@@ -12,10 +12,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from lineage.api.deps import AppState, get_app_state
-from lineage.config.specs import CommissioningBaseline, EnvironmentEnvelope, StationSpec
+from lineage.common.types import RiskLevel
+from lineage.config.specs import CommissioningBaseline, EnvironmentEnvelope, LineSpec, StationSpec
 from lineage.datagen.generators import ambient_temp_c
 from lineage.datagen.models import RunConfig
-from lineage.predict.spc import SPCVerdict, evaluate_spc
+from lineage.predict.bottleneck import BottleneckForecast, BottleneckState, forecast_line
+from lineage.predict.risk import RiskModel, assess_risk
+from lineage.predict.spc import SPCState, SPCVerdict, evaluate_spc
 from lineage.replay.models import (
     LatestReading,
     LineState,
@@ -24,6 +27,7 @@ from lineage.replay.models import (
     StationState,
 )
 from lineage.replay.run_data import RunData
+from lineage.twin.genealogy import GenealogyStore
 
 router = APIRouter()
 
@@ -80,9 +84,139 @@ def _live_spc_verdict(
     )
 
 
+_ALARM_SPC_STATES = {SPCState.OUT_OF_CONTROL, SPCState.ENVIRONMENT_INVALID}
+_WARNING_BOTTLENECK_STATES = {BottleneckState.STARVED, BottleneckState.BLOCKED}
+
+
+class SPCAlarm(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    station_id: str
+    quantity: str
+    state: SPCState
+    rule_triggered: str | None
+    confidence: float
+
+
+def _spc_alarms(
+    *, line: LineSpec, run_data: RunData, run_config: RunConfig, as_of: datetime
+) -> list[SPCAlarm]:
+    """Every station currently OUT_OF_CONTROL or ENVIRONMENT_INVALID -- never
+    IN_CONTROL/UNKNOWN, since those aren't alarms. Live per-request cost is
+    proportional to line length (one evaluate_spc call per station); this is
+    the same class of scan-cost tradeoff already flagged for RunData/
+    build_features and hasn't been measured as a problem at 42 stations."""
+    alarms = []
+    for station in line.stations:
+        verdict = _live_spc_verdict(
+            station=station,
+            run_data=run_data,
+            run_config=run_config,
+            envelope=line.environment_envelope,
+            as_of=as_of,
+        )
+        if verdict is not None and verdict.state in _ALARM_SPC_STATES:
+            alarms.append(
+                SPCAlarm(
+                    station_id=verdict.station_id,
+                    quantity=verdict.quantity,
+                    state=verdict.state,
+                    rule_triggered=verdict.rule_triggered,
+                    confidence=verdict.confidence,
+                )
+            )
+    return alarms
+
+
+class HighRiskCar(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    car_id: str
+    current_station_id: str
+    next_inspection_station_id: str
+    stations_remaining: int
+    risk_level: RiskLevel
+    probability: float | None
+    confidence: float
+
+
+def _next_inspection_station(line: LineSpec, after_sequence_index: int) -> StationSpec | None:
+    candidates = [
+        s
+        for s in line.stations
+        if s.is_inspection_station and s.sequence_index > after_sequence_index
+    ]
+    return min(candidates, key=lambda s: s.sequence_index) if candidates else None
+
+
+def _high_risk_cars(
+    *, line: LineSpec, store: GenealogyStore, line_state: LineState, model: RiskModel | None
+) -> list[HighRiskCar]:
+    """Cars currently on the line, assessed against whichever inspection
+    station they'll reach next. Each car's twin is truncated to visits that
+    have already ended as of `line_state.timestamp` -- GenealogyStore is
+    built once from the complete generated run at 'load' time, so an
+    untruncated twin would hand assess_risk station visits that haven't
+    "happened" yet in replay time, a real future-data leak, not a
+    hypothetical one."""
+    if model is None:
+        return []
+
+    station_by_id = {s.id: s for s in line.stations}
+    as_of = line_state.timestamp
+    results = []
+    for station_state in line_state.stations:
+        if station_state.car_id is None:
+            continue
+        current = station_by_id[station_state.station_id]
+        target = _next_inspection_station(line, current.sequence_index)
+        if target is None:
+            continue
+
+        car = store.car(station_state.car_id)
+        truncated = car.model_copy(
+            update={"visits": [v for v in car.visits if v.exit_time <= as_of]}
+        )
+        assessment = assess_risk(
+            car=truncated, line=line, store=store, inspection_station_id=target.id, model=model
+        )
+        if assessment.risk_level != RiskLevel.HIGH:
+            continue
+        results.append(
+            HighRiskCar(
+                car_id=station_state.car_id,
+                current_station_id=current.id,
+                next_inspection_station_id=target.id,
+                stations_remaining=target.sequence_index - current.sequence_index,
+                risk_level=assessment.risk_level,
+                probability=assessment.probability,
+                confidence=assessment.confidence,
+            )
+        )
+    return results
+
+
+def _try_load_risk_model(state: AppState) -> RiskModel | None:
+    """None whenever no trained risk model is found -- data/models/ is
+    gitignored (a locally-trained artifact, not committed), so a fresh clone
+    or CI environment legitimately has none. High-risk-car reporting is one
+    feature among several in the Floor Supervisor view; its absence
+    shouldn't 409 the whole view the way /api/predict/* does for its own,
+    single-purpose endpoints."""
+    try:
+        return RiskModel(state.models_root / "risk_v1")
+    except Exception:
+        return None
+
+
 def _require_engine(state: AppState) -> None:
     if state.engine is None:
         raise HTTPException(status_code=409, detail="no run loaded; send action='load' first")
+
+
+def _load_run_config(state: AppState) -> RunConfig:
+    assert state.current_run_dir is not None  # set alongside engine at 'load' time
+    return RunConfig.model_validate_json((state.current_run_dir / "run_config.json").read_text())
 
 
 def _current_line_state(state: AppState) -> LineState:
@@ -146,6 +280,13 @@ class FloorSupervisorView(BaseModel):
 
     line_state: LineState
     active_alert_station_ids: list[str]
+    spc_alarms: list[SPCAlarm]
+    high_risk_cars: list[HighRiskCar]
+    bottleneck_warnings: list[BottleneckForecast]
+    issue_assignments: dict[str, str]
+    """issue_id (a station_id or car_id from one of the lists above) ->
+    operator_id. See AppState.issue_assignments and
+    POST /api/floor_supervisor/assignments."""
 
 
 class PlantManagerView(BaseModel):
@@ -175,10 +316,7 @@ def get_operator_view(
     station_state = next(s for s in line_state.stations if s.station_id == station_id)
 
     assert state.engine is not None  # _require_engine already checked this
-    assert state.current_run_dir is not None  # set alongside engine at 'load' time
-    run_config = RunConfig.model_validate_json(
-        (state.current_run_dir / "run_config.json").read_text()
-    )
+    run_config = _load_run_config(state)
     spc_verdict = _live_spc_verdict(
         station=spec,
         run_data=state.engine.run_data,
@@ -201,9 +339,67 @@ def get_operator_view(
 @router.get("/api/view/floor_supervisor")
 def get_floor_supervisor_view(state: AppState = Depends(get_app_state)) -> FloorSupervisorView:
     _require_engine(state)
+    assert state.line is not None  # a loaded engine implies a loaded line
+    assert state.engine is not None
+    assert state.genealogy_store is not None  # built alongside engine at 'load' time
+
     line_state = _current_line_state(state)
     alerts = [s.station_id for s in line_state.stations if _is_alarm(s)]
-    return FloorSupervisorView(line_state=line_state, active_alert_station_ids=alerts)
+
+    run_config = _load_run_config(state)
+    spc_alarms = _spc_alarms(
+        line=state.line,
+        run_data=state.engine.run_data,
+        run_config=run_config,
+        as_of=line_state.timestamp,
+    )
+    high_risk_cars = _high_risk_cars(
+        line=state.line,
+        store=state.genealogy_store,
+        line_state=line_state,
+        model=_try_load_risk_model(state),
+    )
+    bottleneck_warnings = [
+        forecast
+        for forecast in forecast_line(
+            line=state.line, store=state.genealogy_store, as_of=line_state.timestamp
+        )
+        if forecast.predicted_state in _WARNING_BOTTLENECK_STATES
+    ]
+
+    return FloorSupervisorView(
+        line_state=line_state,
+        active_alert_station_ids=alerts,
+        spc_alarms=spc_alarms,
+        high_risk_cars=high_risk_cars,
+        bottleneck_warnings=bottleneck_warnings,
+        issue_assignments=dict(state.issue_assignments),
+    )
+
+
+class AssignIssueRequest(BaseModel):
+    issue_id: str
+    operator_id: str
+
+
+@router.post("/api/floor_supervisor/assignments")
+def assign_issue(
+    req: AssignIssueRequest, state: AppState = Depends(get_app_state)
+) -> dict[str, str]:
+    """Records that `operator_id` has been asked to handle `issue_id` (a
+    station_id or car_id from the alert queue above). A minimal in-memory
+    record, not a real assignment/notification system -- see
+    AppState.issue_assignments."""
+    _require_engine(state)
+    state.issue_assignments[req.issue_id] = req.operator_id
+    return dict(state.issue_assignments)
+
+
+@router.delete("/api/floor_supervisor/assignments/{issue_id}")
+def unassign_issue(issue_id: str, state: AppState = Depends(get_app_state)) -> dict[str, str]:
+    _require_engine(state)
+    state.issue_assignments.pop(issue_id, None)
+    return dict(state.issue_assignments)
 
 
 @router.get("/api/view/plant_manager")

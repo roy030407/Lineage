@@ -372,9 +372,79 @@ Verified: `pytest -q` 141/141 (+1 new test), `ruff check .` clean,
 `tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
 `npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
 
+### Floor Supervisor ✅
+
+Backend: `api/routes/act.py` wired up for the first time (was an empty
+stub, router not even registered in `app.py`) -- `GET /api/act/proposals`
+generates proposals lazily from the run's real failed inspections
+(`inspection.csv` `result == "fail"`, traced via the already-tested
+`trace.lineage_query.trace` then `act.proposals.propose`), cached on
+`AppState` like the prediction ledger; `POST /api/act/proposals/{id}/approve`
+writes to a new `AppState.audit_ledger` via the already-tested
+`act.ledger.approve`, always as `ApproverRole.FLOOR_SUPERVISOR` --
+`act/models.py`'s `MINIMUM_APPROVER_ROLE` is already exactly that, so this
+endpoint can't be used to approve as a lower role because there's no
+other endpoint that would let it. `FloorSupervisorView` gained
+`spc_alarms` (every station currently OUT_OF_CONTROL/ENVIRONMENT_INVALID,
+reusing Operator's `_live_spc_verdict`), `high_risk_cars` (cars currently
+on the line, `assess_risk` against their next inspection station --
+`predict.bottleneck.forecast_line` was already built and tested, needed
+only wiring), and `issue_assignments` (a minimal in-memory
+`issue_id -> operator_id` record via two new endpoints, not a real
+auth/session system). All additive; no existing field removed.
+
+**A real bug found and fixed along the way, not scope creep:** `seek`
+never touched `snapshot_history`, so a seek immediately followed by any
+role-view poll (exactly what scrubbing the replay position does) could
+read a stale pre-seek snapshot for up to a second -- the background tick
+loop is the only other thing that ever pushes a snapshot, and only while
+playing. Caught because it made the new Floor Supervisor tests flaky
+against a real seeded scenario (ST-06's torque drift), not by inspection.
+Fixed by having `seek` push its own returned state into `snapshot_history`
+immediately (`api/routes/mirror.py`).
+
+**Perf, measured, not assumed:** the new fields' first pass cost ~2.9s
+per request against a 2-hours-in 400-car run (`_spc_alarms`'s 42x live
+`evaluate_spc` calls dominating, each re-filtering the full,
+ever-growing telemetry/events frames from scratch). Fixed by grouping
+`RunData`'s telemetry/events by station once at construction
+(`_telemetry_by_station`/`_events_by_station`), so per-station queries
+filter only that station's own slice -- ~4-5x faster (down to ~0.6-0.9s),
+verified before and after. The remaining cost is dominated by
+`engine.current_state()`'s own per-tick scan, which is the separate,
+already-flagged RunData/build_features scan-cost task from before this
+branch started -- not fixed here, out of scope for Task 6.
+
+Frontend: `FloorSupervisorView` now embeds the actual `<Scene />` (the
+Mirror) alongside the alert queue, per "the Mirror plus a live alert
+queue" -- split layout, Mirror on the left, a scrollable panel on the
+right with SPC alarms / high-risk cars / bottleneck warnings / pending
+Act proposals, each alert with an assign-to-operator control reusing the
+same component. Verified live end-to-end against the real seeded
+default run: 19-21 real SPC alarms, 9 real high-risk cars with sane
+stations-remaining counts, 15 real bottleneck warnings with real
+minutes-to-onset, 57 real Act proposals citing real trace evidence;
+assign/unassign and approve all round-trip correctly (approve confirmed
+via poll: pending count actually decrements).
+
+New `tests/unit/test_api_floor_supervisor.py` (module-scoped fixture,
+same real-default-run pattern `test_spc_golden.py` uses, not a synthetic
+tiny line -- these features need real telemetry/inspection history to
+prove the wiring, not just the response shape) covers the new alert-queue
+fields against the known ST-06 torque-drift scenario, the assignment
+endpoints round-tripping, and Act proposals listing/approving/404.
+
+Playwright: Floor Supervisor's assertion now also checks for the
+SPC alarms / high-risk cars / bottleneck warnings section headers --
+Floor-Supervisor-only content no shared fallback could produce.
+
+Verified: `pytest -q` 145/145 (+4 new tests), `ruff check .` clean,
+`tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
+`npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
+
 ## Remaining tasks
 
-6. Role views: Floor Supervisor, Plant Manager (Operator done above)
+6. Role views: Plant Manager (Operator, Floor Supervisor done above)
 7. Leadership ROI backend + view
 8. Node-graph Builder canvas
 9. Final sweep
