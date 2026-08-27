@@ -93,8 +93,8 @@ export function StationBuilder() {
 
   if (loadError) {
     return (
-      <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           Could not start a builder draft: {loadError}
         </p>
       </div>
@@ -103,8 +103,8 @@ export function StationBuilder() {
 
   if (!draft) {
     return (
-      <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           Loading draft…
         </p>
       </div>
@@ -112,13 +112,20 @@ export function StationBuilder() {
   }
 
   return (
-    <div style={{ padding: "2rem", color: "var(--color-vellum)", display: "flex", gap: "3rem" }}>
-      <div style={{ minWidth: "360px" }}>
+    <div
+      style={{
+        padding: "var(--space-8)",
+        color: "var(--color-vellum)",
+        display: "flex",
+        gap: "var(--space-12)",
+      }}
+    >
+      <div style={{ minWidth: "var(--width-builder-column)" }}>
         <p className="eyebrow">Station Builder — {draft.plant_name}</p>
 
         {rowError && <p style={{ color: "var(--color-beacon-red)" }}>{rowError}</p>}
 
-        <table className="data" style={{ width: "100%", marginTop: "1rem" }}>
+        <table className="data" style={{ width: "100%", marginTop: "var(--space-4)" }}>
           <thead>
             <tr>
               <th>#</th>
@@ -137,7 +144,7 @@ export function StationBuilder() {
                 </td>
                 <td>{station.zone}</td>
                 <td>{station.acquisition_mode}</td>
-                <td style={{ display: "flex", gap: "0.25rem" }}>
+                <td style={{ display: "flex", gap: "var(--space-1)" }}>
                   <button
                     onClick={() => void handleMove(station.id, "up")}
                     disabled={i <= 1}
@@ -164,14 +171,14 @@ export function StationBuilder() {
           </tbody>
         </table>
 
-        <div style={{ marginTop: "1.5rem" }}>
+        <div style={{ marginTop: "var(--space-6)" }}>
           <p className="eyebrow">Save as new line</p>
           <input
             value={filename}
             onChange={(e) => setFilename(e.target.value)}
             placeholder="my_new_line.yaml"
           />
-          <button onClick={() => void handleSave()} style={{ marginLeft: "0.5rem" }}>
+          <button onClick={() => void handleSave()} style={{ marginLeft: "var(--space-2)" }}>
             Save
           </button>
           {saveResult && <p>{saveResult}</p>}
@@ -179,7 +186,7 @@ export function StationBuilder() {
         </div>
       </div>
 
-      <div style={{ minWidth: "320px" }}>
+      <div style={{ minWidth: "var(--width-side-panel)" }}>
         <StationBuilderForm
           existingStationIds={draft.stations.map((s) => s.id)}
           onSubmit={(station, after) => void handleInsert(station, after)}

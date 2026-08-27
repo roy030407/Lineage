@@ -10,8 +10,8 @@ export function LeadershipView() {
 
   if (!view) {
     return (
-      <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           Loading summary…
         </p>
       </div>
@@ -19,10 +19,10 @@ export function LeadershipView() {
   }
 
   return (
-    <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
+    <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
       <p className="eyebrow">Leadership view</p>
 
-      <div style={{ display: "flex", gap: "3rem", marginTop: "1.5rem" }}>
+      <div style={{ display: "flex", gap: "var(--space-12)", marginTop: "var(--space-6)" }}>
         <div>
           <p className="eyebrow">Occupied stations</p>
           <p style={{ font: "var(--text-h1)" }}>{view.summary.occupied_station_count}</p>

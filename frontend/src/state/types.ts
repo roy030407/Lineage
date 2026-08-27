@@ -101,6 +101,12 @@ export type SensorHealth = "green" | "red" | "not_yet_reporting" | "not_applicab
 export type MachineHealth = "green" | "red";
 export type PlaybackMode = "playing" | "paused" | "step";
 
+// Not yet returned by any endpoint the frontend calls -- defined now so the
+// design tokens (styles/tokens.ts) can cover the full status vocabulary
+// ahead of Predict's SPC/risk views being wired up.
+export type SPCState = "in_control" | "out_of_control" | "unknown" | "environment_invalid";
+export type RiskLevel = "low" | "medium" | "high" | "unknown_risk";
+
 export interface LatestReading {
   sensor_id: string;
   quantity: string;

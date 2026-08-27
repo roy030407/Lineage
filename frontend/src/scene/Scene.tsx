@@ -8,9 +8,8 @@ import * as THREE from "three";
 
 import { useLineageStore } from "../state/store";
 import { setTestScene } from "../testHooks";
+import { PALETTE } from "../styles/tokens";
 import { Line3D } from "./Line3D";
-
-const FOUNDRY = "#22231f";
 
 /** Frames the camera to the line's actual extent once, when the LineSpec
  * first loads -- a line 8 stations long and one 42 stations long need very
@@ -87,7 +86,7 @@ export function Scene() {
     <Canvas
       shadows
       camera={{ position: [40, 60, 120], fov: 45, near: 0.1, far: 5000 }}
-      style={{ background: FOUNDRY }}
+      style={{ background: PALETTE.foundry }}
       onCreated={(state) => setTestScene(state.scene)}
     >
       <ambientLight intensity={0.6} />

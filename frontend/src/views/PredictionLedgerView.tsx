@@ -74,9 +74,9 @@ export function PredictionLedgerView() {
 
   if (unavailable) {
     return (
-      <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
         <p className="eyebrow">Prediction Ledger</p>
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           No prediction ledger available for this run -- either no run is loaded, or no
           trained risk model was found under data/models/risk_v1.
         </p>
@@ -86,8 +86,8 @@ export function PredictionLedgerView() {
 
   if (!byStation) {
     return (
-      <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           Loading ledger…
         </p>
       </div>
@@ -97,13 +97,13 @@ export function PredictionLedgerView() {
   const stationIds = Object.keys(byStation);
 
   return (
-    <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
+    <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
       <p className="eyebrow">Prediction Ledger — per station</p>
 
       {stationIds.length === 0 ? (
         <p>No resolved predictions yet for this run.</p>
       ) : (
-        <table className="data" style={{ width: "100%", marginTop: "1rem" }}>
+        <table className="data" style={{ width: "100%", marginTop: "var(--space-4)" }}>
           <thead>
             <tr>
               <th>Station</th>
@@ -122,7 +122,7 @@ export function PredictionLedgerView() {
         </table>
       )}
 
-      <div style={{ marginTop: "2rem" }}>
+      <div style={{ marginTop: "var(--space-8)" }}>
         <p className="eyebrow">Post-intervention trend</p>
         <select value={trendStationId} onChange={(e) => setTrendStationId(e.target.value)}>
           <option value="">Select a station…</option>
@@ -136,20 +136,24 @@ export function PredictionLedgerView() {
           type="datetime-local"
           value={interventionAt}
           onChange={(e) => setInterventionAt(e.target.value)}
-          style={{ marginLeft: "0.5rem" }}
+          style={{ marginLeft: "var(--space-2)" }}
         />
         <button
           onClick={() => void checkTrend()}
           disabled={!trendStationId || !interventionAt}
-          style={{ marginLeft: "0.5rem" }}
+          style={{ marginLeft: "var(--space-2)" }}
         >
           Check trend
         </button>
 
-        {trend === null && <p style={{ marginTop: "0.5rem" }}>Not enough data yet for a verdict.</p>}
-        {trend && <p style={{ marginTop: "0.5rem" }}>Trend: {trend}</p>}
+        {trend === null && (
+          <p style={{ marginTop: "var(--space-2)" }}>Not enough data yet for a verdict.</p>
+        )}
+        {trend && <p style={{ marginTop: "var(--space-2)" }}>Trend: {trend}</p>}
         {trendError && (
-          <p style={{ color: "var(--color-beacon-red)", marginTop: "0.5rem" }}>{trendError}</p>
+          <p style={{ color: "var(--color-beacon-red)", marginTop: "var(--space-2)" }}>
+            {trendError}
+          </p>
         )}
       </div>
     </div>

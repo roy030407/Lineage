@@ -171,9 +171,71 @@ golden test this task temporarily broke and then fixed), `ruff check .`
 clean, `npx playwright test` 7/8 (same pre-existing, documented
 spawn-tray failure, unrelated to this change).
 
+## Task 4 — Design tokens ✅
+
+Replaced the two-source-of-truth setup (`styles/colors.ts`'s JS hex values
+kept in sync with `styles/tokens.css`'s `:root` block only by a comment
+asking nicely) with one real source: `styles/tokens.ts`. It exports
+`PALETTE`/`FONT_FAMILIES`/`TYPE_SCALE` (unchanged values, moved), a new
+`SPACING` scale (`--space-1`…`--space-12`, one step = 0.25rem) and
+`WIDTHS` set (the three recurring panel widths), and
+`applyDesignTokens()`, called once from `main.tsx`, which injects all of
+it as CSS custom properties on `:root` -- `tokens.css` no longer hardcodes
+a second copy of any value, just the structural rules (`.eyebrow`,
+`.data`, `.hazard-hatch`) that read `var(--...)`. `colors.ts` is deleted;
+its three importers (`Scene.tsx`, `Car3D.tsx`, `Line3D.tsx`) and
+`Station3D.tsx` now import `PALETTE` from `tokens.ts` directly, since
+three.js materials still need real hex values, not CSS custom properties.
+
+Full status vocabulary defined once, covering all four backend enums
+(`SensorHealth`, `MachineHealth`, `SPCState`, `RiskLevel` -- "environment
+validity" is `SPCState.ENVIRONMENT_INVALID`, not a separate backend
+concept): each state maps to `{ color, shape, label }` via
+`SENSOR_HEALTH_TOKENS`/`MACHINE_HEALTH_TOKENS`/`SPC_STATE_TOKENS`/
+`RISK_LEVEL_TOKENS`. One 5-shape vocabulary is reused across all four so
+shape carries a single consistent meaning everywhere: circle=healthy,
+triangle=caution, diamond=fault, hexagon=pending/no-data-yet,
+ring=not-applicable/unknown -- colour is never the only signal, so the
+distinction survives a projector or a colour-blind viewer. `SPCState`/
+`RiskLevel` TS types added to `state/types.ts`; nothing in the frontend
+surfaces them yet (no endpoint returns them today), so their tokens are
+defined and ready but unused until Task 6/7 wires up a real view.
+
+`Station3D.tsx` refactored to consume the tokens instead of its own local
+`sensorColor`/`machineColor`/`sensorGeometryFor` -- both lamps (sensor and
+machine) now render shape from the shared vocabulary via one
+`StatusLamp`/`ShapeGeometry` helper. This is also a real fix, not just a
+refactor: `MachineHealth`'s lamp used to be a fixed cube regardless of
+state (colour-only, failing the colour-blind/projector requirement); it's
+now circle (green) vs. diamond (red), same as sensor health.
+
+New `components/StatusBadge.tsx` (filled in an existing empty stub file
+that had never been wired up) renders a token as glyph + colour + label
+text -- wired into the three 2D spots that used to render
+`sensor_health`/`machine_health` as bare unstyled text
+(`OperatorView`/`FloorSupervisorView`/`PlantManagerView`), so the
+NOT_YET_REPORTING/RED distinction from Task 2 is now actually visible
+somewhere in 2D, not just in the 3D Mirror's lamp shape. Verified visually
+(Playwright screenshot + DOM text extraction) against the live default
+run: ST-41/ST-42 (end of line, simulated time hasn't reached them) show
+"⬡ No Data Yet", seeded-defect stations show "◆ Sensor Fault", manual
+stations show "○ No Sensor" -- three distinct glyphs and labels, not a
+shared "unknown" fallback.
+
+Every literal spacing/width value across `TopBar`, `StationPanel`,
+`CarPanel`, `StationBuilder`, `StationBuilderForm`, `OperatorView`,
+`FloorSupervisorView`, `LeadershipView`, `PlantManagerView`,
+`PredictionLedgerView` replaced with `var(--space-N)`/`var(--width-*)`.
+
+Verified: `pytest -q` 140/140 (unaffected, frontend-only change),
+`ruff check .` clean, `tsc --noEmit` clean, `vitest run` 1/1, production
+build succeeds, `npx playwright test` 7/8 (same pre-existing, documented
+spawn-tray failure), plus a manual Playwright-driven visual check of the
+Mirror (serpentine layout + lamp shapes) and the Operator/Floor Supervisor
+views (status badges) against the running dev server.
+
 ## Remaining tasks
 
-4. Shared design token system
 5. 3D Mirror rebuild
 6. Role views: Operator, Floor Supervisor, Plant Manager
 7. Leadership ROI backend + view

@@ -10,11 +10,11 @@ const panelStyle: CSSProperties = {
   position: "absolute",
   top: 0,
   right: 0,
-  width: "320px",
+  width: "var(--width-side-panel)",
   height: "100%",
   background: "var(--color-cast-steel)",
   color: "var(--color-vellum)",
-  padding: "1rem",
+  padding: "var(--space-4)",
   overflowY: "auto",
   borderLeft: "1px solid var(--color-steel-neutral)",
 };
@@ -42,13 +42,16 @@ export function CarPanel() {
       ) : (
         <>
           <p className="eyebrow">{carTwin.model_variant}</p>
-          <p className="eyebrow" style={{ marginTop: "1rem" }}>
+          <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
             Stations visited ({carTwin.visits.length})
           </p>
           {carTwin.visits.map((visit) => (
             <div
               key={visit.station_id}
-              style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "0.5rem 0" }}
+              style={{
+                borderTop: "1px solid var(--color-steel-neutral)",
+                padding: "var(--space-2) 0",
+              }}
             >
               <p style={{ font: "var(--text-h2)" }}>{visit.station_id}</p>
               <p className="data">

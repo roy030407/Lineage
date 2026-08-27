@@ -10,11 +10,11 @@ const panelStyle: CSSProperties = {
   position: "absolute",
   top: 0,
   right: 0,
-  width: "320px",
+  width: "var(--width-side-panel)",
   height: "100%",
   background: "var(--color-cast-steel)",
   color: "var(--color-vellum)",
-  padding: "1rem",
+  padding: "var(--space-4)",
   overflowY: "auto",
   borderLeft: "1px solid var(--color-steel-neutral)",
 };
@@ -39,16 +39,16 @@ export function StationPanel() {
       <h2 style={{ font: "var(--text-h1)" }}>{station.name}</h2>
       <p className="eyebrow">{station.id}</p>
 
-      <p className="eyebrow" style={{ marginTop: "1rem" }}>
+      <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
         Acquisition mode
       </p>
       <p>{station.acquisition_mode}</p>
 
-      <p className="eyebrow" style={{ marginTop: "1rem" }}>
+      <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
         Live readings
       </p>
       {state.latest_readings.length === 0 ? (
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           No readings reported yet
         </p>
       ) : (
@@ -64,7 +64,7 @@ export function StationPanel() {
         </table>
       )}
 
-      <p className="eyebrow" style={{ marginTop: "1rem" }}>
+      <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
         Commissioning baseline
       </p>
       {station.commissioning_baseline ? (
@@ -87,7 +87,7 @@ export function StationPanel() {
           </tbody>
         </table>
       ) : (
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           No baseline commissioned
         </p>
       )}

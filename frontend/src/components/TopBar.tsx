@@ -41,8 +41,8 @@ export function TopBar() {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "1rem",
-        padding: "0.75rem 1rem",
+        gap: "var(--space-4)",
+        padding: "var(--space-3) var(--space-4)",
         background: "var(--color-cast-steel)",
         borderBottom: "1px solid var(--color-steel-neutral)",
       }}

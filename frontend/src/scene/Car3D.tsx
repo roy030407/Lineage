@@ -8,7 +8,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import type { LineState, StationCoordinate } from "../state/types";
-import { COLORS } from "../styles/colors";
+import { PALETTE } from "../styles/tokens";
 import { BLOCK_SIZE } from "./Station3D";
 
 const MAX_CARS = 80;
@@ -79,7 +79,7 @@ export function Car3D({
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
-      color.set(isFollowed ? COLORS.beaconAmber : COLORS.vellum);
+      color.set(isFollowed ? PALETTE.beaconAmber : PALETTE.vellum);
       mesh.setColorAt(i, color);
     }
 

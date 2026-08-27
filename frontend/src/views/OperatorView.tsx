@@ -4,8 +4,10 @@
 
 import { useMemo, useState } from "react";
 
+import { StatusBadge } from "../components/StatusBadge";
 import { getOperatorView } from "../state/api";
 import { useLineageStore } from "../state/store";
+import { MACHINE_HEALTH_TOKENS, SENSOR_HEALTH_TOKENS } from "../styles/tokens";
 import { useRolePoll } from "./useRolePoll";
 
 export function OperatorView() {
@@ -25,13 +27,19 @@ export function OperatorView() {
   if (!lineSpec) return null;
 
   return (
-    <div style={{ padding: "2rem", color: "var(--color-vellum)", maxWidth: "480px" }}>
+    <div
+      style={{
+        padding: "var(--space-8)",
+        color: "var(--color-vellum)",
+        maxWidth: "var(--width-readable-measure)",
+      }}
+    >
       <p className="eyebrow">Operator view</p>
       <select
         value={activeStationId ?? ""}
         onChange={(event) => setStationId(event.target.value)}
         aria-label="My station"
-        style={{ marginBottom: "1.5rem" }}
+        style={{ marginBottom: "var(--space-6)" }}
       >
         {stations.map((station) => (
           <option key={station.id} value={station.id}>
@@ -41,7 +49,7 @@ export function OperatorView() {
       </select>
 
       {!view ? (
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           Loading station state…
         </p>
       ) : (
@@ -49,16 +57,18 @@ export function OperatorView() {
           <h2 style={{ font: "var(--text-h1)" }}>{view.station_name}</h2>
           <p className="eyebrow">{view.station_id}</p>
 
-          <p className="eyebrow" style={{ marginTop: "1rem" }}>
-            Sensor health: {view.sensor_health}
+          <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
+            Sensor health: <StatusBadge token={SENSOR_HEALTH_TOKENS[view.sensor_health]} />
           </p>
-          <p className="eyebrow">Machine health: {view.machine_health}</p>
+          <p className="eyebrow">
+            Machine health: <StatusBadge token={MACHINE_HEALTH_TOKENS[view.machine_health]} />
+          </p>
 
-          <p className="eyebrow" style={{ marginTop: "1rem" }}>
+          <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
             Live readings
           </p>
           {view.latest_readings.length === 0 ? (
-            <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+            <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
               No readings reported yet
             </p>
           ) : (
@@ -74,7 +84,7 @@ export function OperatorView() {
             </table>
           )}
 
-          <p className="eyebrow" style={{ marginTop: "1rem" }}>
+          <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
             Commissioning baseline
           </p>
           {view.commissioning_baseline ? (
@@ -99,7 +109,7 @@ export function OperatorView() {
               </tbody>
             </table>
           ) : (
-            <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+            <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
               No baseline commissioned
             </p>
           )}

@@ -8,7 +8,7 @@ import * as THREE from "three";
 
 import { useLineageStore } from "../state/store";
 import type { StationCoordinate, StationState } from "../state/types";
-import { COLORS } from "../styles/colors";
+import { PALETTE } from "../styles/tokens";
 import { Car3D } from "./Car3D";
 import { Station3D } from "./Station3D";
 
@@ -27,7 +27,7 @@ function ConveyorSegment3D({ from, to }: { from: StationCoordinate; to: StationC
   return (
     <mesh position={position} rotation={[0, angle, 0]} receiveShadow>
       <boxGeometry args={[0.6, 0.15, length]} />
-      <meshStandardMaterial color={COLORS.steelNeutral} roughness={0.9} />
+      <meshStandardMaterial color={PALETTE.steelNeutral} roughness={0.9} />
     </mesh>
   );
 }
@@ -58,7 +58,7 @@ function BufferStack({ from, to, depth }: { from: StationCoordinate; to: Station
       {markers.map((position, i) => (
         <mesh key={i} position={position}>
           <boxGeometry args={[0.3, 0.3, 0.3]} />
-          <meshStandardMaterial color={COLORS.vellum} roughness={0.7} />
+          <meshStandardMaterial color={PALETTE.vellum} roughness={0.7} />
         </mesh>
       ))}
     </>

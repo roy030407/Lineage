@@ -1,0 +1,138 @@
+// Single source of truth for the design system: palette, type scale,
+// spacing, and the status vocabulary shared by the Mirror (3D), every 2D
+// role view, and the Builder. Nothing downstream should redefine a colour,
+// font, spacing value, or status-state colour/shape/label of its own --
+// import it from here.
+//
+// tokens.css's :root block used to hardcode these same values a second
+// time (three.js materials can't read CSS custom properties, so a JS-side
+// copy was unavoidable) -- the two were only kept in sync by a comment
+// asking nicely. applyDesignTokens() below replaces that: it injects the
+// CSS custom properties from the values here at startup (called once from
+// main.tsx), so there is exactly one place any of these numbers live.
+
+import type { MachineHealth, RiskLevel, SensorHealth, SPCState } from "../state/types";
+
+export const PALETTE = {
+  foundry: "#22231f", // base canvas
+  castSteel: "#4a4e47", // panels, dividers, structural chrome
+  vellum: "#dad5c6", // primary text
+  beaconGreen: "#4c9a5b",
+  beaconAmber: "#e8a33d",
+  beaconRed: "#c43b3b",
+  steelNeutral: "#7a8380", // no signal / not applicable -- shape carries the meaning, not a new hue
+} as const;
+
+export const FONT_FAMILIES = {
+  display: `"Big Shoulders Condensed", "Arial Narrow", sans-serif`,
+  body: `"IBM Plex Sans", system-ui, sans-serif`,
+  mono: `"IBM Plex Mono", "Consolas", monospace`,
+} as const;
+
+export const TYPE_SCALE = {
+  display: `700 2.5rem/1.1 ${FONT_FAMILIES.display}`,
+  h1: `600 1.5rem/1.2 ${FONT_FAMILIES.display}`,
+  h2: `500 1.125rem/1.3 ${FONT_FAMILIES.display}`,
+  body: `400 0.9375rem/1.5 ${FONT_FAMILIES.body}`,
+  eyebrow: `600 0.75rem/1.4 ${FONT_FAMILIES.body}`,
+  data: `400 0.875rem/1.4 ${FONT_FAMILIES.mono}`,
+  dataHero: `500 1.75rem/1.2 ${FONT_FAMILIES.mono}`,
+} as const;
+
+export const EYEBROW_LETTER_SPACING = "0.04em";
+
+// One step = 0.25rem (4px). Every margin/padding/gap in the app should
+// read one of these via var(--space-N), never a literal rem/px value.
+export const SPACING = {
+  1: "0.25rem",
+  2: "0.5rem",
+  3: "0.75rem",
+  4: "1rem",
+  6: "1.5rem",
+  8: "2rem",
+  12: "3rem",
+} as const;
+
+// Recurring container widths -- not a spacing step, but still a value that
+// shouldn't be hand-typed per component.
+export const WIDTHS = {
+  sidePanel: "320px",
+  builderColumn: "360px",
+  readableMeasure: "480px",
+} as const;
+
+export type ShapeToken = "circle" | "triangle" | "diamond" | "hexagon" | "ring";
+
+export interface StatusToken {
+  color: string;
+  shape: ShapeToken;
+  label: string;
+}
+
+// One shape vocabulary, reused by every status domain below, so "shape"
+// carries a single consistent meaning everywhere -- never colour alone,
+// so the distinction survives a projector or colour-blind viewer:
+//   circle   = healthy / in control / low risk
+//   triangle = caution, needs attention
+//   diamond  = fault
+//   hexagon  = pending -- not a fault, just no data yet
+//   ring     = not applicable / unknown -- no meaningful signal at all
+
+export const SENSOR_HEALTH_TOKENS: Record<SensorHealth, StatusToken> = {
+  green: { color: PALETTE.beaconGreen, shape: "circle", label: "Reporting" },
+  red: { color: PALETTE.beaconRed, shape: "diamond", label: "Sensor Fault" },
+  not_yet_reporting: { color: PALETTE.steelNeutral, shape: "hexagon", label: "No Data Yet" },
+  not_applicable: { color: PALETTE.steelNeutral, shape: "ring", label: "No Sensor" },
+};
+
+export const MACHINE_HEALTH_TOKENS: Record<MachineHealth, StatusToken> = {
+  green: { color: PALETTE.beaconGreen, shape: "circle", label: "Maintained" },
+  red: { color: PALETTE.beaconRed, shape: "diamond", label: "Maintenance Overdue" },
+};
+
+export const SPC_STATE_TOKENS: Record<SPCState, StatusToken> = {
+  in_control: { color: PALETTE.beaconGreen, shape: "circle", label: "In Control" },
+  out_of_control: { color: PALETTE.beaconRed, shape: "diamond", label: "Out of Control" },
+  unknown: { color: PALETTE.steelNeutral, shape: "ring", label: "Unknown" },
+  environment_invalid: {
+    color: PALETTE.beaconAmber,
+    shape: "triangle",
+    label: "Environment Invalid",
+  },
+};
+
+export const RISK_LEVEL_TOKENS: Record<RiskLevel, StatusToken> = {
+  low: { color: PALETTE.beaconGreen, shape: "circle", label: "Low Risk" },
+  medium: { color: PALETTE.beaconAmber, shape: "triangle", label: "Medium Risk" },
+  high: { color: PALETTE.beaconRed, shape: "diamond", label: "High Risk" },
+  unknown_risk: { color: PALETTE.steelNeutral, shape: "ring", label: "Unknown Risk" },
+};
+
+function kebabCase(camel: string): string {
+  return camel.replace(/([A-Z])/g, "-$1").toLowerCase();
+}
+
+/** Injects every palette/type/spacing/width value above as a CSS custom
+ * property on :root. Call once, before the app renders (see main.tsx) --
+ * plain CSS (tokens.css's .eyebrow/.data/etc rules) and every component's
+ * var(--color-*)/var(--text-*)/var(--space-*) read are sourced from here,
+ * not from a second hardcoded :root block. */
+export function applyDesignTokens(): void {
+  const root = document.documentElement.style;
+  for (const [name, value] of Object.entries(PALETTE)) {
+    root.setProperty(`--color-${kebabCase(name)}`, value);
+  }
+  for (const [name, value] of Object.entries(TYPE_SCALE)) {
+    root.setProperty(`--text-${kebabCase(name)}`, value);
+  }
+  for (const [name, value] of Object.entries(FONT_FAMILIES)) {
+    root.setProperty(`--font-${kebabCase(name)}`, value);
+  }
+  for (const [name, value] of Object.entries(SPACING)) {
+    root.setProperty(`--space-${name}`, value);
+  }
+  for (const [name, value] of Object.entries(WIDTHS)) {
+    root.setProperty(`--width-${kebabCase(name)}`, value);
+  }
+  root.setProperty("--letter-spacing-eyebrow", EYEBROW_LETTER_SPACING);
+}

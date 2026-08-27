@@ -1,7 +1,9 @@
 // Plant Manager role view: line-wide summary counters up front, full
 // per-station detail below for anyone drilling in.
 
+import { StatusBadge } from "../components/StatusBadge";
 import { getPlantManagerView } from "../state/api";
+import { MACHINE_HEALTH_TOKENS, SENSOR_HEALTH_TOKENS } from "../styles/tokens";
 import { useRolePoll } from "./useRolePoll";
 
 export function PlantManagerView() {
@@ -9,8 +11,8 @@ export function PlantManagerView() {
 
   if (!view) {
     return (
-      <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
-        <p className="hazard-hatch" style={{ padding: "0.5rem" }}>
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
           Loading line state…
         </p>
       </div>
@@ -18,10 +20,10 @@ export function PlantManagerView() {
   }
 
   return (
-    <div style={{ padding: "2rem", color: "var(--color-vellum)" }}>
+    <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
       <p className="eyebrow">Plant Manager view</p>
 
-      <div style={{ display: "flex", gap: "2rem", marginTop: "1rem" }}>
+      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-4)" }}>
         <div>
           <p className="eyebrow">Occupied stations</p>
           <p style={{ font: "var(--text-h1)" }}>{view.summary.occupied_station_count}</p>
@@ -38,7 +40,7 @@ export function PlantManagerView() {
         </div>
       </div>
 
-      <p className="eyebrow" style={{ marginTop: "1.5rem" }}>
+      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
         All stations
       </p>
       <table className="data" style={{ width: "100%" }}>
@@ -56,8 +58,12 @@ export function PlantManagerView() {
             <tr key={station.station_id}>
               <td>{station.station_id}</td>
               <td>{station.car_id ?? "—"}</td>
-              <td>{station.sensor_health}</td>
-              <td>{station.machine_health}</td>
+              <td>
+                <StatusBadge token={SENSOR_HEALTH_TOKENS[station.sensor_health]} />
+              </td>
+              <td>
+                <StatusBadge token={MACHINE_HEALTH_TOKENS[station.machine_health]} />
+              </td>
               <td>{station.upstream_buffer_depth}</td>
             </tr>
           ))}

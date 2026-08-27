@@ -115,7 +115,7 @@ export function StationBuilderForm({ existingStationIds, onSubmit, submitting, e
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <p className="eyebrow">Insert a new station</p>
 
       <label>
@@ -192,7 +192,7 @@ export function StationBuilderForm({ existingStationIds, onSubmit, submitting, e
         />
       </label>
 
-      <p className="eyebrow" style={{ marginTop: "0.5rem" }}>
+      <p className="eyebrow" style={{ marginTop: "var(--space-2)" }}>
         Machine
       </p>
       <label>
@@ -236,13 +236,13 @@ export function StationBuilderForm({ existingStationIds, onSubmit, submitting, e
         />
       </label>
 
-      <p className="eyebrow" style={{ marginTop: "0.5rem" }}>
+      <p className="eyebrow" style={{ marginTop: "var(--space-2)" }}>
         Sensors ({sensors.length})
       </p>
       {sensors.map((sensor, i) => (
         <div
           key={i}
-          style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}
+          style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}
         >
           <input
             value={sensor.id}
@@ -284,7 +284,7 @@ export function StationBuilderForm({ existingStationIds, onSubmit, submitting, e
         Add sensor
       </button>
 
-      <label style={{ marginTop: "0.5rem" }}>
+      <label style={{ marginTop: "var(--space-2)" }}>
         Insert after
         <select
           value={afterStationId ?? ""}
@@ -303,7 +303,7 @@ export function StationBuilderForm({ existingStationIds, onSubmit, submitting, e
         <p style={{ color: "var(--color-beacon-red)" }}>{localError ?? error}</p>
       )}
 
-      <button type="submit" disabled={submitting} style={{ marginTop: "0.5rem" }}>
+      <button type="submit" disabled={submitting} style={{ marginTop: "var(--space-2)" }}>
         {submitting ? "Inserting…" : "Insert station"}
       </button>
     </form>
