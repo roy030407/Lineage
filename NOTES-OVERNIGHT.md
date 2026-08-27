@@ -500,9 +500,53 @@ Verified: `pytest -q` 149/149 (+4 new tests), `ruff check .` clean,
 `tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
 `npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
 
+## Task 7 — Leadership ROI ✅
+
+Zero existing backend logic to build on: `StationSpec.cost_per_hour`/
+`value_add_pct` existed but were read by nothing anywhere in the
+backend before this. Real, approved contract change (same class as
+Task 6's Plant Manager one): the old live occupied/alarm/buffer
+`LineSummary` triple is gone -- `LineSummary`/`_summarize` are now fully
+dead code, deleted rather than left as unused clutter. Replaced with:
+
+- `total_cost_per_hour` / `total_value_added_cost_per_hour` /
+  `value_added_ratio`: a real, standard lean-manufacturing metric
+  (value-add-weighted cost, summed across all 42 stations), not
+  fabricated.
+- `cost_by_zone`: the same breakdown by zone, mirroring Task 6's
+  `defect_rate_by_zone` pattern.
+- `sensor_retrofit_candidates`: manual (no-sensor) stations only,
+  ranked by recurring defect occurrences first, then economic weight
+  (`cost_per_hour * value_add_pct`). Reuses Task 6's
+  `_ensure_trace_results` cache directly -- a manual station implicated
+  often as a real traced defect origin is a genuine, data-backed retrofit
+  signal. Deliberately does **not** fabricate a dollar "ROI" figure: there
+  is no cost-per-defect input anywhere in the data model to compute one
+  from, and inventing one would violate "predictions/numbers reflect real
+  available info."
+
+Verified live and in `tests/unit/test_api_leadership.py` (same
+real-default-run pattern as Tasks 6's Floor Supervisor/Plant Manager
+tests) against the real seeded default run: ST-02 (the seeded unflagged
+operator-handover station, already found to be the largest recurring
+root cause in Task 6) correctly ranks first among retrofit candidates,
+reusing that exact same real data rather than a coincidence. Zone cost
+totals checked to equal the sum of their member stations', not just
+plausible numbers.
+
+Frontend: cost/value-add totals, zone breakdown, and the ranked
+retrofit-candidates table replace the three counters. Playwright's
+Leadership assertion now checks for this real content and confirms no
+live per-station sensor/machine table exists anywhere on the page (the
+retrofit table is curated business data, not live status -- that
+distinction, not "zero tables", is the actual invariant).
+
+Verified: `pytest -q` 152/152 (+3 new tests), `ruff check .` clean,
+`tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
+`npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
+
 ## Remaining tasks
 
-7. Leadership ROI backend + view
 8. Node-graph Builder canvas
 9. Final sweep
 

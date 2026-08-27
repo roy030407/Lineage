@@ -236,6 +236,10 @@ def test_plant_manager_view_has_no_live_line_state(tmp_path):
 
 
 def test_leadership_view_has_no_per_station_detail(tmp_path):
+    """Deliberate, approved spec change (Task 7): the live occupied/alarm/
+    buffer summary triple is gone, replaced by real cost/value-add/
+    sensor-retrofit ROI numbers (see test_api_leadership.py for real-data
+    coverage of those) -- still no per-station live detail of any kind."""
     _setup_state(tmp_path)
     with TestClient(create_app()) as client:
         client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
@@ -244,7 +248,14 @@ def test_leadership_view_has_no_per_station_detail(tmp_path):
     body = response.json()
     assert "line_state" not in body
     assert "stations" not in body
-    assert set(body.keys()) == {"summary"}
+    assert "summary" not in body
+    assert set(body.keys()) == {
+        "total_cost_per_hour",
+        "total_value_added_cost_per_hour",
+        "value_added_ratio",
+        "cost_by_zone",
+        "sensor_retrofit_candidates",
+    }
 
 
 def test_role_views_without_load_return_conflict(tmp_path):

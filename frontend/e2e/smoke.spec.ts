@@ -230,13 +230,21 @@ test.describe("role views render their own distinctive content", () => {
     expect(rows).toBeGreaterThan(30);
   });
 
-  test("Leadership shows summary counters ONLY -- no per-station table at all", async ({
+  test("Leadership shows ROI numbers, never live per-station sensor/machine detail", async ({
     page,
   }) => {
     await page.goto("/");
     await page.selectOption('select[aria-label="Select role view"]', "leadership");
-    await expect(page.getByText("Occupied stations")).toBeVisible();
-    await expect(page.locator("table")).toHaveCount(0);
+    // Distinctive, Leadership-only content: real cost/value-add totals and
+    // the sensor-retrofit ranking -- neither exists in any other role view.
+    await expect(page.getByText("Value-added ratio")).toBeVisible();
+    await expect(page.getByText(/Sensor retrofit candidates \(/)).toBeVisible();
+    // The retrofit table is curated business data (manual stations ranked
+    // by economic weight and recurring defects), not a live per-station
+    // sensor/machine/buffer table like Floor Supervisor's or the old
+    // Plant Manager's -- that distinction, not "zero tables", is the
+    // actual invariant here.
+    await expect(page.getByText("Sensor", { exact: true })).toHaveCount(0);
   });
 });
 

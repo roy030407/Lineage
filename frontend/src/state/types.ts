@@ -206,12 +206,6 @@ export interface OperatorView {
   spc_verdict: SPCVerdict | null;
 }
 
-export interface LineSummary {
-  occupied_station_count: number;
-  alarm_station_count: number;
-  average_upstream_buffer_depth: number;
-}
-
 export interface SPCAlarm {
   station_id: string;
   quantity: string;
@@ -319,8 +313,28 @@ export interface PlantManagerView {
   maintenance_status: MaintenanceStatus[];
 }
 
+export interface CostByZone {
+  zone: Zone;
+  total_cost_per_hour: number;
+  value_added_cost_per_hour: number;
+  value_added_ratio: number;
+}
+
+export interface SensorRetrofitCandidate {
+  station_id: string;
+  zone: Zone;
+  cost_per_hour: number;
+  value_add_pct: number;
+  economic_weight: number;
+  recurring_defect_occurrences: number;
+}
+
 export interface LeadershipView {
-  summary: LineSummary;
+  total_cost_per_hour: number;
+  total_value_added_cost_per_hour: number;
+  value_added_ratio: number;
+  cost_by_zone: CostByZone[];
+  sensor_retrofit_candidates: SensorRetrofitCandidate[];
 }
 
 // --- prediction ledger --------------------------------------------------

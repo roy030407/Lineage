@@ -247,27 +247,6 @@ def _is_alarm(station: StationState) -> bool:
     return station.sensor_health == SensorHealth.RED or station.machine_health == MachineHealth.RED
 
 
-class LineSummary(BaseModel):
-    model_config = ConfigDict(revalidate_instances="always")
-
-    occupied_station_count: int
-    alarm_station_count: int
-    average_upstream_buffer_depth: float
-
-
-def _summarize(line_state: LineState) -> LineSummary:
-    stations = line_state.stations
-    occupied = sum(1 for s in stations if s.car_id is not None)
-    alarms = sum(1 for s in stations if _is_alarm(s))
-    depths = [s.upstream_buffer_depth for s in stations]
-    average_depth = sum(depths) / len(depths) if depths else 0.0
-    return LineSummary(
-        occupied_station_count=occupied,
-        alarm_station_count=alarms,
-        average_upstream_buffer_depth=average_depth,
-    )
-
-
 class OperatorView(BaseModel):
     model_config = ConfigDict(revalidate_instances="always")
 
@@ -390,10 +369,45 @@ class PlantManagerView(BaseModel):
     maintenance_status: list[MaintenanceStatus]
 
 
+class CostByZone(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    zone: Zone
+    total_cost_per_hour: float
+    value_added_cost_per_hour: float
+    value_added_ratio: float
+
+
+class SensorRetrofitCandidate(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    station_id: str
+    zone: Zone
+    cost_per_hour: float
+    value_add_pct: float
+    economic_weight: float
+    """cost_per_hour * value_add_pct / 100 -- how much value-adding cost
+    currently runs through this station with no automated way to catch a
+    defect at the source."""
+    recurring_defect_occurrences: int
+    """How often this station shows up as a traced defect origin this run
+    (Plant Manager's recurring_root_causes, reused directly -- a manual
+    station implicated often is a real, data-backed retrofit signal, not
+    an invented one)."""
+
+
 class LeadershipView(BaseModel):
     model_config = ConfigDict(revalidate_instances="always")
 
-    summary: LineSummary
+    total_cost_per_hour: float
+    total_value_added_cost_per_hour: float
+    value_added_ratio: float
+    cost_by_zone: list[CostByZone]
+    sensor_retrofit_candidates: list[SensorRetrofitCandidate]
+    """Manual (no-sensor) stations only, ranked by recurring defect
+    occurrences first, then economic weight -- never a fabricated dollar
+    "ROI" figure, since there's no real cost-per-defect input anywhere in
+    the data model to compute one from."""
 
 
 @router.get("/api/view/operator")
@@ -598,6 +612,61 @@ def get_plant_manager_view(state: AppState = Depends(get_app_state)) -> PlantMan
 
 @router.get("/api/view/leadership")
 def get_leadership_view(state: AppState = Depends(get_app_state)) -> LeadershipView:
+    """Replaces the old live occupied/alarm/buffer triple entirely -- no
+    per-station detail, live or otherwise. Real cost/value-add numbers from
+    StationSpec (previously read by nothing anywhere in the backend), and a
+    sensor-retrofit ranking grounded in that plus Task 6's real
+    recurring-root-cause data, never a fabricated dollar "ROI" figure."""
     _require_engine(state)
-    line_state = _current_line_state(state)
-    return LeadershipView(summary=_summarize(line_state))
+    assert state.line is not None  # a loaded engine implies a loaded line
+
+    total_cost = 0.0
+    total_value_added_cost = 0.0
+    zone_totals: dict[Zone, list[float]] = {}
+    for station in state.line.stations:
+        value_added_cost = station.cost_per_hour * (station.value_add_pct / 100.0)
+        total_cost += station.cost_per_hour
+        total_value_added_cost += value_added_cost
+        totals = zone_totals.setdefault(station.zone, [0.0, 0.0])
+        totals[0] += station.cost_per_hour
+        totals[1] += value_added_cost
+
+    cost_by_zone = [
+        CostByZone(
+            zone=zone,
+            total_cost_per_hour=cost,
+            value_added_cost_per_hour=value_added_cost,
+            value_added_ratio=value_added_cost / cost if cost else 0.0,
+        )
+        for zone, (cost, value_added_cost) in zone_totals.items()
+    ]
+
+    origin_counts: dict[str, int] = {}
+    for result in _ensure_trace_results(state):
+        origin_counts[result.originating_station_id] = (
+            origin_counts.get(result.originating_station_id, 0) + 1
+        )
+
+    candidates = [
+        SensorRetrofitCandidate(
+            station_id=station.id,
+            zone=station.zone,
+            cost_per_hour=station.cost_per_hour,
+            value_add_pct=station.value_add_pct,
+            economic_weight=station.cost_per_hour * (station.value_add_pct / 100.0),
+            recurring_defect_occurrences=origin_counts.get(station.id, 0),
+        )
+        for station in state.line.stations
+        if not station.sensors
+    ]
+    candidates.sort(
+        key=lambda c: (c.recurring_defect_occurrences, c.economic_weight), reverse=True
+    )
+
+    return LeadershipView(
+        total_cost_per_hour=total_cost,
+        total_value_added_cost_per_hour=total_value_added_cost,
+        value_added_ratio=total_value_added_cost / total_cost if total_cost else 0.0,
+        cost_by_zone=cost_by_zone,
+        sensor_retrofit_candidates=candidates,
+    )
