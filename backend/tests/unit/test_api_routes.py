@@ -212,17 +212,27 @@ def test_floor_supervisor_view_includes_full_line_state_and_alerts(tmp_path):
     assert isinstance(body["active_alert_station_ids"], list)
 
 
-def test_plant_manager_view_includes_summary_counts(tmp_path):
+def test_plant_manager_view_has_no_live_line_state(tmp_path):
+    """Deliberate, approved spec change (Task 6): Plant Manager is weekly,
+    not live -- no real-time firehose. This used to assert "line_state" in
+    body and a live LineSummary; both are gone now, replaced by weekly
+    aggregates (see test_api_plant_manager.py for real-data coverage of
+    those)."""
     _setup_state(tmp_path)
     with TestClient(create_app()) as client:
         client.post("/api/replay/control", json={"action": "load", "run_id": "api-test-run"})
         response = client.get("/api/view/plant_manager")
     assert response.status_code == 200
     body = response.json()
-    assert "line_state" in body
-    summary = body["summary"]
-    assert summary["occupied_station_count"] >= 0
-    assert summary["alarm_station_count"] >= 0
+    assert "line_state" not in body
+    assert "summary" not in body
+    assert set(body.keys()) == {
+        "defect_rate_by_station",
+        "defect_rate_by_zone",
+        "rework",
+        "recurring_root_causes",
+        "maintenance_status",
+    }
 
 
 def test_leadership_view_has_no_per_station_detail(tmp_path):

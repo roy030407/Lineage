@@ -274,9 +274,49 @@ export interface AuditRecord {
   proposal_snapshot: Proposal;
 }
 
+export interface DefectRateByStation {
+  station_id: string;
+  zone: Zone;
+  total_inspections: number;
+  fail_count: number;
+  fail_rate: number;
+}
+
+export interface DefectRateByZone {
+  zone: Zone;
+  total_inspections: number;
+  fail_count: number;
+  fail_rate: number;
+}
+
+export interface ReworkSummary {
+  total_defect_events: number;
+  cars_requiring_rework: number;
+  total_cars_inspected: number;
+  rework_rate: number;
+}
+
+export interface RecurringRootCause {
+  station_id: string;
+  occurrence_count: number;
+  example_car_ids: string[];
+}
+
+export interface MaintenanceStatus {
+  station_id: string;
+  machine_model: string;
+  maintenance_interval_days: number;
+  days_since_maintenance: number;
+  days_until_due: number;
+  recent_wear_state: number | null;
+}
+
 export interface PlantManagerView {
-  line_state: LineState;
-  summary: LineSummary;
+  defect_rate_by_station: DefectRateByStation[];
+  defect_rate_by_zone: DefectRateByZone[];
+  rework: ReworkSummary;
+  recurring_root_causes: RecurringRootCause[];
+  maintenance_status: MaintenanceStatus[];
 }
 
 export interface LeadershipView {

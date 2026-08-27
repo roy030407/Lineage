@@ -1,19 +1,56 @@
-// Plant Manager role view: line-wide summary counters up front, full
-// per-station detail below for anyone drilling in.
+// Plant Manager role view: weekly, not live -- defect-rate trends, rework
+// volume, recurring root causes from Trace history, and maintenance
+// schedule versus predicted need. Deliberately no real-time firehose (that's
+// Floor Supervisor's job): no live per-station table, and no auto-polling
+// every couple of seconds like the other role views -- this is a report you
+// pull, not a feed you watch.
 
-import { StatusBadge } from "../components/StatusBadge";
+import { useCallback, useEffect, useState } from "react";
+
 import { getPlantManagerView } from "../state/api";
-import { MACHINE_HEALTH_TOKENS, SENSOR_HEALTH_TOKENS } from "../styles/tokens";
-import { useRolePoll } from "./useRolePoll";
+import type { PlantManagerView as PlantManagerViewData } from "../state/types";
+
+function formatPct(fraction: number): string {
+  return `${(fraction * 100).toFixed(1)}%`;
+}
 
 export function PlantManagerView() {
-  const view = useRolePoll(getPlantManagerView, []);
+  const [view, setView] = useState<PlantManagerViewData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setView(await getPlantManagerView());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (error) {
+    return (
+      <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
+        <p className="eyebrow">Plant Manager view</p>
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
+          Could not load the weekly report: {error}
+        </p>
+      </div>
+    );
+  }
 
   if (!view) {
     return (
       <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
         <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
-          Loading line state…
+          Loading weekly report…
         </p>
       </div>
     );
@@ -21,50 +58,123 @@ export function PlantManagerView() {
 
   return (
     <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
-      <p className="eyebrow">Plant Manager view</p>
-
-      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-4)" }}>
-        <div>
-          <p className="eyebrow">Occupied stations</p>
-          <p style={{ font: "var(--text-h1)" }}>{view.summary.occupied_station_count}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Stations in alarm</p>
-          <p style={{ font: "var(--text-h1)" }}>{view.summary.alarm_station_count}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Avg. upstream buffer</p>
-          <p style={{ font: "var(--text-h1)" }}>
-            {view.summary.average_upstream_buffer_depth.toFixed(1)}
-          </p>
-        </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-4)" }}>
+        <p className="eyebrow">Plant Manager view — weekly report</p>
+        <button onClick={() => void load()} disabled={loading}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </button>
       </div>
 
       <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        All stations
+        Defect rate by zone
+      </p>
+      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
+        {view.defect_rate_by_zone.map((zone) => (
+          <div key={zone.zone}>
+            <p className="eyebrow">{zone.zone}</p>
+            <p style={{ font: "var(--text-h1)" }}>{formatPct(zone.fail_rate)}</p>
+            <p className="data">
+              {zone.fail_count} / {zone.total_inspections}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
+        Defect rate by station
       </p>
       <table className="data" style={{ width: "100%" }}>
         <thead>
           <tr>
             <th>Station</th>
-            <th>Car</th>
-            <th>Sensor</th>
-            <th>Machine</th>
-            <th>Buffer</th>
+            <th>Zone</th>
+            <th>Inspections</th>
+            <th>Fails</th>
+            <th>Fail rate</th>
           </tr>
         </thead>
         <tbody>
-          {view.line_state.stations.map((station) => (
+          {view.defect_rate_by_station.map((station) => (
             <tr key={station.station_id}>
               <td>{station.station_id}</td>
-              <td>{station.car_id ?? "—"}</td>
-              <td>
-                <StatusBadge token={SENSOR_HEALTH_TOKENS[station.sensor_health]} />
+              <td>{station.zone}</td>
+              <td>{station.total_inspections}</td>
+              <td>{station.fail_count}</td>
+              <td>{formatPct(station.fail_rate)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
+        Rework volume
+      </p>
+      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
+        <div>
+          <p className="eyebrow">Defect events</p>
+          <p style={{ font: "var(--text-h1)" }}>{view.rework.total_defect_events}</p>
+        </div>
+        <div>
+          <p className="eyebrow">Cars requiring rework</p>
+          <p style={{ font: "var(--text-h1)" }}>{view.rework.cars_requiring_rework}</p>
+        </div>
+        <div>
+          <p className="eyebrow">Rework rate</p>
+          <p style={{ font: "var(--text-h1)" }}>{formatPct(view.rework.rework_rate)}</p>
+        </div>
+      </div>
+
+      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
+        Recurring root causes
+      </p>
+      {view.recurring_root_causes.length === 0 ? (
+        <p>No traced defects yet for this run.</p>
+      ) : (
+        <table className="data" style={{ width: "100%" }}>
+          <thead>
+            <tr>
+              <th>Origin station</th>
+              <th>Occurrences</th>
+              <th>Example cars</th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.recurring_root_causes.map((cause) => (
+              <tr key={cause.station_id}>
+                <td>{cause.station_id}</td>
+                <td>{cause.occurrence_count}</td>
+                <td>{cause.example_car_ids.join(", ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
+        Maintenance: schedule vs. predicted need
+      </p>
+      <table className="data" style={{ width: "100%" }}>
+        <thead>
+          <tr>
+            <th>Station</th>
+            <th>Machine</th>
+            <th>Days since maintenance</th>
+            <th>Days until due</th>
+            <th>Recent wear state</th>
+          </tr>
+        </thead>
+        <tbody>
+          {view.maintenance_status.map((status) => (
+            <tr key={status.station_id}>
+              <td>{status.station_id}</td>
+              <td>{status.machine_model}</td>
+              <td>{status.days_since_maintenance.toFixed(1)}</td>
+              <td style={{ color: status.days_until_due < 0 ? "var(--color-beacon-red)" : undefined }}>
+                {status.days_until_due.toFixed(1)}
               </td>
               <td>
-                <StatusBadge token={MACHINE_HEALTH_TOKENS[station.machine_health]} />
+                {status.recent_wear_state === null ? "—" : status.recent_wear_state.toFixed(2)}
               </td>
-              <td>{station.upstream_buffer_depth}</td>
             </tr>
           ))}
         </tbody>

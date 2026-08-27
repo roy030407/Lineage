@@ -213,10 +213,19 @@ test.describe("role views render their own distinctive content", () => {
     expect(rows).toBeGreaterThan(30);
   });
 
-  test("Plant Manager shows summary counters plus the full station table", async ({ page }) => {
+  test("Plant Manager shows the weekly report, not a live per-station firehose", async ({
+    page,
+  }) => {
     await page.goto("/");
     await page.selectOption('select[aria-label="Select role view"]', "plant_manager");
-    await expect(page.getByText("Occupied stations")).toBeVisible();
+    // Distinctive, Plant-Manager-only content: recurring root causes and the
+    // maintenance schedule-vs-predicted table exist in no other role view.
+    await expect(page.getByText("Recurring root causes")).toBeVisible();
+    await expect(page.getByText("Maintenance: schedule vs. predicted need")).toBeVisible();
+    // No live per-station sensor/machine/buffer table -- that's Floor
+    // Supervisor's job, not Plant Manager's.
+    await expect(page.getByText("Sensor")).toHaveCount(0);
+    // The maintenance table alone has one row per station.
     const rows = await page.locator("table tbody tr").count();
     expect(rows).toBeGreaterThan(30);
   });

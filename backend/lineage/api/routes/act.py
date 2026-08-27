@@ -1,15 +1,16 @@
 """Act proposal listing and approval endpoints.
 
 Proposals are generated lazily from the run's actual failed inspections --
-every (car_id, station_id) pair where inspection.csv recorded "fail" gets
-traced back to its likely originating station via trace.lineage_query.trace,
-then act.proposals.propose turns that into bounded, envelope-checked
-proposals. Cached on AppState like the prediction ledger, so approving one
-by id later in the same loaded run finds the same object, not a freshly
+every (car_id, station_id) pair where inspection.csv recorded "fail", traced
+back to its likely originating station. That trace pass is shared with Plant
+Manager's recurring-root-cause report (api/routes/views.py's
+_ensure_trace_results), since both need the exact same, real per-car work
+computed once, not twice. act.proposals.propose then turns each trace result
+into bounded, envelope-checked proposals, cached separately here so approving
+one by id later in the same loaded run finds the same object, not a freshly
 regenerated uuid.
 """
 
-import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -17,7 +18,7 @@ from lineage.act.ledger import approve as approve_proposal
 from lineage.act.models import ApproverRole, AuditRecord, Proposal, ProposalStatus
 from lineage.act.proposals import propose
 from lineage.api.deps import AppState, get_app_state
-from lineage.trace.lineage_query import trace
+from lineage.api.routes.views import _ensure_trace_results
 
 router = APIRouter()
 
@@ -30,20 +31,9 @@ def _ensure_proposals(state: AppState) -> list[Proposal]:
         raise HTTPException(status_code=409, detail="no run loaded; send action='load' first")
     assert state.line is not None  # a loaded engine implies a loaded line
 
-    inspection_df = pd.read_csv(
-        state.current_run_dir / "inspection.csv", parse_dates=["timestamp"]
-    )
-    failed = inspection_df[inspection_df.result == "fail"]
-
     proposals: list[Proposal] = []
     seen_ids: set[str] = set()
-    for row in failed.itertuples():
-        trace_result = trace(
-            line=state.line,
-            store=state.genealogy_store,
-            car_id=row.car_id,
-            flagged_at_station_id=row.station_id,
-        )
+    for trace_result in _ensure_trace_results(state):
         for proposal in propose(trace_result, state.line):
             if proposal.proposal_id not in seen_ids:
                 proposals.append(proposal)

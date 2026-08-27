@@ -63,8 +63,10 @@ def replay_control(req: ReplayControlRequest, state: AppState = Depends(get_app_
         state.current_run_dir = run_dir
         state.prediction_ledger = None
         # Same reasoning: real per-car work, built lazily by api/routes/act.py
-        # on first request, and an assignment refers to a specific run's
-        # alert that no longer exists once that run is gone.
+        # and Plant Manager's recurring-root-cause report on first request,
+        # and an assignment refers to a specific run's alert that no longer
+        # exists once that run is gone.
+        state.trace_results = None
         state.act_proposals = None
         state.issue_assignments = {}
 

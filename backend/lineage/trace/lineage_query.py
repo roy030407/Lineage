@@ -1,6 +1,9 @@
 """Car-centric and station-centric root-cause trace queries."""
 
 from datetime import timedelta
+from pathlib import Path
+
+import pandas as pd
 
 from lineage.config.specs import LineSpec
 from lineage.trace.models import ExposedCar, TraceResult
@@ -120,3 +123,16 @@ def trace(
         ranked_contributions=ranked,
         affected_cars=affected,
     )
+
+
+def traced_failures(line: LineSpec, store: GenealogyStore, run_dir: Path) -> list[TraceResult]:
+    """Traces every (car_id, station_id) pair inspection.csv recorded as a
+    real "fail" -- the shared input both Act's proposal generation and Plant
+    Manager's recurring-root-cause reporting need, computed once rather than
+    twice: real per-car Trace work, not free."""
+    inspection_df = pd.read_csv(run_dir / "inspection.csv", parse_dates=["timestamp"])
+    failed = inspection_df[inspection_df.result == "fail"]
+    return [
+        trace(line=line, store=store, car_id=row.car_id, flagged_at_station_id=row.station_id)
+        for row in failed.itertuples()
+    ]

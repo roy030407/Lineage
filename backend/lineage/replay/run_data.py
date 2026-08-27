@@ -135,7 +135,12 @@ class RunData:
             for row in rows.itertuples()
         ]
 
-    def machine_is_maintained(self, station: StationSpec, timestamp: datetime) -> bool:
+    def days_since_maintenance_at(self, station: StationSpec, timestamp: datetime) -> float:
+        """Days since the most recent maintenance at or before `timestamp` --
+        an in-run maintenance event if one has happened, else the station's
+        commissioning-time last_maintenance_date. Shared by
+        machine_is_maintained (a threshold check) and Plant Manager's
+        maintenance-schedule reporting (the actual number)."""
         events = self._events_for(station.id)
         maintenance_events = events[
             (events.event_type == "maintenance") & (events.timestamp <= timestamp)
@@ -146,5 +151,8 @@ class RunData:
             last_maintenance = datetime.combine(
                 station.machine.last_maintenance_date, datetime.min.time()
             )
-        elapsed_days = (timestamp - last_maintenance).total_seconds() / 86400.0
+        return (timestamp - last_maintenance).total_seconds() / 86400.0
+
+    def machine_is_maintained(self, station: StationSpec, timestamp: datetime) -> bool:
+        elapsed_days = self.days_since_maintenance_at(station, timestamp)
         return elapsed_days <= station.machine.maintenance_interval_days

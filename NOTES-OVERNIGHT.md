@@ -316,7 +316,7 @@ Verified: `pytest -q` 140/140 (unaffected), `ruff check .` clean,
 `npx playwright test` 8/9 (was 7/8: +1 new regression test passing; same
 pre-existing documented spawn-tray gap, unrelated).
 
-## Task 6 — Role views (in progress)
+## Task 6 — Role views ✅
 
 Investigation before writing anything turned up more than a frontend
 rebuild: `predict/bottleneck.py`'s `forecast_line` is fully built and
@@ -442,9 +442,66 @@ Verified: `pytest -q` 145/145 (+4 new tests), `ruff check .` clean,
 `tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
 `npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
 
+### Plant Manager ✅ (Task 6 complete)
+
+Real contract change, approved before touching it: `line_state` and the
+live `LineSummary` are both gone -- Task 6 is explicit that Plant Manager
+is "weekly, not live, no real-time firehose," and a live-computed summary
+(occupied stations *right now*) contradicts that just as much as the
+full per-station table did. Replaced with five weekly aggregates,
+computed over the whole run to date from `inspection.csv` and the twin
+store, not a live tick:
+
+- `defect_rate_by_station` / `defect_rate_by_zone`: grouped straight from
+  `inspection.csv`'s real `result` column -- zone totals are the sum of
+  their member stations', checked in the new test, not just plausible.
+- `rework`: distinct cars with >=1 failed inspection vs. total inspected.
+- `recurring_root_causes`: every real failed inspection traced back to
+  its likely origin (`trace.lineage_query.trace`), aggregated by
+  originating station, sorted by occurrence. Shares its trace pass with
+  Act's proposal generation via a new `AppState.trace_results` cache and
+  `trace.lineage_query.traced_failures` -- both features need the exact
+  same, real per-car work, now computed once instead of twice.
+- `maintenance_status`: schedule (from `StationSpec.machine` +
+  `RunData`'s new `days_since_maintenance_at`) reported *alongside*
+  predicted need (mean `machine_wear_state` across each station's most
+  recent visits), not collapsed into one score -- so "schedule says fine,
+  wear says otherwise" (or the reverse) stays visible rather than hidden
+  behind a single number.
+
+Verified live against the real seeded default run: defect rates land
+exactly on the three real inspection stations (ST-16/26/42); recurring
+root causes correctly surfaces ST-02 as the single largest source (182
+occurrences) -- confirmed this is real, not a bug: ST-02 is the seeded
+*unflagged* operator-handover station, so its bias never gets the
+recalibration-window pass a flagged handover would, and it affects every
+car in that operator's ~200-car shift, correctly dwarfing the 30-car-wide
+torque-drift window at ST-06 (27 occurrences). One maintenance-status
+value was legitimately negative (`days_since_maintenance` for a station
+whose commissioning date happens to fall after this short demo run's
+simulated window, since `last_maintenance_date` is spread across all 12
+months of 2024 in the sample data) -- a real property of the existing
+sample line, not a bug, and the new test was corrected to allow it
+rather than the app changed to hide it.
+
+Frontend: no auto-polling (unlike every other role view) -- a manual
+"Refresh" button instead, reinforcing "a report you pull, not a feed you
+watch." No live per-station sensor/machine/buffer table anywhere.
+
+New `tests/unit/test_api_plant_manager.py` (same real-default-run
+pattern as Floor Supervisor's) covers the response shape, defect-rate/
+rework arithmetic, the ST-02/ST-06 recurring-root-cause result, and
+maintenance status across every station. Playwright's Plant Manager
+assertion now checks for the recurring-root-causes and maintenance
+sections and explicitly asserts no "Sensor" column exists anywhere on
+the page.
+
+Verified: `pytest -q` 149/149 (+4 new tests), `ruff check .` clean,
+`tsc --noEmit` clean, `vitest run` 1/1, production build succeeds,
+`npx playwright test` 8/9 (same pre-existing documented spawn-tray gap).
+
 ## Remaining tasks
 
-6. Role views: Plant Manager (Operator, Floor Supervisor done above)
 7. Leadership ROI backend + view
 8. Node-graph Builder canvas
 9. Final sweep

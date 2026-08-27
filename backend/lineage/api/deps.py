@@ -9,6 +9,7 @@ from lineage.predict.ledger import PredictionLedger
 from lineage.replay.engine import ReplayEngine
 from lineage.replay.store import SnapshotHistory
 from lineage.replay.ws import ConnectionManager
+from lineage.trace.models import TraceResult
 from lineage.twin.genealogy import GenealogyStore
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -57,6 +58,14 @@ class AppState:
         gitignored (a locally-trained artifact, not committed), so a fresh
         clone or CI environment legitimately has none. See
         api/routes/predict.py."""
+        self.trace_results: list[TraceResult] | None = None
+        """Every real failed inspection in the run, traced back to its likely
+        origin -- built lazily on whichever of Act's proposal listing or
+        Plant Manager's recurring-root-cause report is requested first, then
+        shared by both (see trace.lineage_query.traced_failures), since
+        tracing every failure is real per-car work, not free, and both
+        features need the exact same computation. Reset to None on every new
+        'load'."""
         self.act_proposals: list[Proposal] | None = None
         """Built lazily on first request to GET /api/act/proposals, then
         cached here (same reasoning as prediction_ledger: real per-car Trace

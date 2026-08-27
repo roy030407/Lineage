@@ -8,12 +8,19 @@ simply choosing not to display it.
 
 from datetime import datetime
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from lineage.api.deps import AppState, get_app_state
 from lineage.common.types import RiskLevel
-from lineage.config.specs import CommissioningBaseline, EnvironmentEnvelope, LineSpec, StationSpec
+from lineage.config.specs import (
+    CommissioningBaseline,
+    EnvironmentEnvelope,
+    LineSpec,
+    StationSpec,
+    Zone,
+)
 from lineage.datagen.generators import ambient_temp_c
 from lineage.datagen.models import RunConfig
 from lineage.predict.bottleneck import BottleneckForecast, BottleneckState, forecast_line
@@ -27,6 +34,8 @@ from lineage.replay.models import (
     StationState,
 )
 from lineage.replay.run_data import RunData
+from lineage.trace.lineage_query import traced_failures
+from lineage.trace.models import TraceResult
 from lineage.twin.genealogy import GenealogyStore
 
 router = APIRouter()
@@ -289,11 +298,96 @@ class FloorSupervisorView(BaseModel):
     POST /api/floor_supervisor/assignments."""
 
 
+def _ensure_trace_results(state: AppState) -> list[TraceResult]:
+    """Shared with api/routes/act.py's proposal generation -- both need every
+    real failed inspection traced back to its likely origin, and tracing is
+    real per-car work, not free. Cached on AppState.trace_results so it's
+    only ever computed once per loaded run, whichever of the two features
+    asks for it first."""
+    if state.trace_results is not None:
+        return state.trace_results
+    if state.line is None or state.genealogy_store is None or state.current_run_dir is None:
+        raise HTTPException(status_code=409, detail="no run loaded; send action='load' first")
+    results = traced_failures(state.line, state.genealogy_store, state.current_run_dir)
+    state.trace_results = results
+    return results
+
+
+class DefectRateByStation(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    station_id: str
+    zone: Zone
+    total_inspections: int
+    fail_count: int
+    fail_rate: float
+
+
+class DefectRateByZone(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    zone: Zone
+    total_inspections: int
+    fail_count: int
+    fail_rate: float
+
+
+class ReworkSummary(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    total_defect_events: int
+    cars_requiring_rework: int
+    total_cars_inspected: int
+    rework_rate: float
+
+
+class RecurringRootCause(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    station_id: str
+    occurrence_count: int
+    example_car_ids: list[str]
+
+
+class MaintenanceStatus(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    station_id: str
+    machine_model: str
+    maintenance_interval_days: int
+    days_since_maintenance: float
+    days_until_due: float
+    recent_wear_state: float | None
+    """Mean machine_wear_state across the station's most recent visits --
+    None if it has no visits yet. A high value despite still being within
+    the scheduled interval is exactly the "predicted need ahead of
+    schedule" signal this field exists to catch; schedule and prediction
+    are reported side by side rather than collapsed into one score."""
+
+
+_MAINTENANCE_WEAR_LOOKBACK = 5
+
+
+def _recent_wear_state(store: GenealogyStore, station_id: str) -> float | None:
+    car_ids = store.cars_through(station_id, datetime.min, datetime.max)[
+        -_MAINTENANCE_WEAR_LOOKBACK:
+    ]
+    wear_states = []
+    for car_id in car_ids:
+        visit = next((v for v in store.car(car_id).visits if v.station_id == station_id), None)
+        if visit is not None:
+            wear_states.append(visit.machine_wear_state)
+    return sum(wear_states) / len(wear_states) if wear_states else None
+
+
 class PlantManagerView(BaseModel):
     model_config = ConfigDict(revalidate_instances="always")
 
-    line_state: LineState
-    summary: LineSummary
+    defect_rate_by_station: list[DefectRateByStation]
+    defect_rate_by_zone: list[DefectRateByZone]
+    rework: ReworkSummary
+    recurring_root_causes: list[RecurringRootCause]
+    maintenance_status: list[MaintenanceStatus]
 
 
 class LeadershipView(BaseModel):
@@ -404,9 +498,102 @@ def unassign_issue(issue_id: str, state: AppState = Depends(get_app_state)) -> d
 
 @router.get("/api/view/plant_manager")
 def get_plant_manager_view(state: AppState = Depends(get_app_state)) -> PlantManagerView:
+    """Weekly, not live -- defect trends, rework volume, recurring root
+    causes, and maintenance schedule vs. predicted need, never a live
+    per-station firehose (that's Floor Supervisor's job). Aggregates are
+    computed over the whole run to date, so this does still change as more
+    of the simulated week completes, but there is no live LineState here at
+    all, unlike the field this replaced."""
     _require_engine(state)
-    line_state = _current_line_state(state)
-    return PlantManagerView(line_state=line_state, summary=_summarize(line_state))
+    assert state.line is not None  # a loaded engine implies a loaded line
+    assert state.engine is not None
+    assert state.genealogy_store is not None  # built alongside engine at 'load' time
+    assert state.current_run_dir is not None
+
+    inspection_df = pd.read_csv(
+        state.current_run_dir / "inspection.csv", parse_dates=["timestamp"]
+    )
+    station_by_id = {s.id: s for s in state.line.stations}
+
+    defect_rate_by_station = []
+    for station_id, group in inspection_df.groupby("station_id"):
+        station = station_by_id.get(station_id)
+        if station is None:
+            continue
+        total = len(group)
+        fails = int((group.result == "fail").sum())
+        defect_rate_by_station.append(
+            DefectRateByStation(
+                station_id=station_id,
+                zone=station.zone,
+                total_inspections=total,
+                fail_count=fails,
+                fail_rate=fails / total if total else 0.0,
+            )
+        )
+    defect_rate_by_station.sort(key=lambda d: d.station_id)
+
+    zone_totals: dict[Zone, list[int]] = {}
+    for d in defect_rate_by_station:
+        totals = zone_totals.setdefault(d.zone, [0, 0])
+        totals[0] += d.total_inspections
+        totals[1] += d.fail_count
+    defect_rate_by_zone = [
+        DefectRateByZone(
+            zone=zone, total_inspections=total, fail_count=fails,
+            fail_rate=fails / total if total else 0.0,
+        )
+        for zone, (total, fails) in zone_totals.items()
+    ]
+
+    failed = inspection_df[inspection_df.result == "fail"]
+    cars_requiring_rework = int(failed.car_id.nunique())
+    total_cars_inspected = int(inspection_df.car_id.nunique())
+    rework = ReworkSummary(
+        total_defect_events=len(failed),
+        cars_requiring_rework=cars_requiring_rework,
+        total_cars_inspected=total_cars_inspected,
+        rework_rate=(
+            cars_requiring_rework / total_cars_inspected if total_cars_inspected else 0.0
+        ),
+    )
+
+    origin_cars: dict[str, list[str]] = {}
+    for result in _ensure_trace_results(state):
+        origin_cars.setdefault(result.originating_station_id, []).append(result.car_id)
+    recurring_root_causes = sorted(
+        (
+            RecurringRootCause(
+                station_id=station_id, occurrence_count=len(car_ids), example_car_ids=car_ids[:5]
+            )
+            for station_id, car_ids in origin_cars.items()
+        ),
+        key=lambda cause: cause.occurrence_count,
+        reverse=True,
+    )
+
+    as_of = _current_line_state(state).timestamp
+    maintenance_status = []
+    for station in state.line.stations:
+        days_since = state.engine.run_data.days_since_maintenance_at(station, as_of)
+        maintenance_status.append(
+            MaintenanceStatus(
+                station_id=station.id,
+                machine_model=station.machine.model,
+                maintenance_interval_days=station.machine.maintenance_interval_days,
+                days_since_maintenance=days_since,
+                days_until_due=station.machine.maintenance_interval_days - days_since,
+                recent_wear_state=_recent_wear_state(state.genealogy_store, station.id),
+            )
+        )
+
+    return PlantManagerView(
+        defect_rate_by_station=defect_rate_by_station,
+        defect_rate_by_zone=defect_rate_by_zone,
+        rework=rework,
+        recurring_root_causes=recurring_root_causes,
+        maintenance_status=maintenance_status,
+    )
 
 
 @router.get("/api/view/leadership")
