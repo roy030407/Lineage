@@ -5,6 +5,8 @@
 // grounded in that plus real recurring-defect data, never a fabricated
 // dollar "ROI" figure.
 
+import { HudPanel } from "../components/HudPanel";
+import { StatTile } from "../components/StatTile";
 import { getLeadershipView } from "../state/api";
 import { useRolePoll } from "./useRolePoll";
 
@@ -33,64 +35,67 @@ export function LeadershipView() {
     <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
       <p className="eyebrow">Leadership view</p>
 
-      <div style={{ display: "flex", gap: "var(--space-12)", marginTop: "var(--space-6)" }}>
-        <div>
-          <p className="eyebrow">Total cost</p>
-          <p style={{ font: "var(--text-h1)" }}>{formatCost(view.total_cost_per_hour)}</p>
+      <HudPanel>
+        <div style={{ display: "flex", gap: "var(--space-12)" }}>
+          <StatTile label="Total cost" value={view.total_cost_per_hour} format={formatCost} />
+          <StatTile
+            label="Value-added cost"
+            value={view.total_value_added_cost_per_hour}
+            format={formatCost}
+          />
+          <StatTile
+            label="Value-added ratio"
+            value={view.value_added_ratio * 100}
+            format={(n) => `${n.toFixed(1)}%`}
+          />
         </div>
-        <div>
-          <p className="eyebrow">Value-added cost</p>
-          <p style={{ font: "var(--text-h1)" }}>
-            {formatCost(view.total_value_added_cost_per_hour)}
-          </p>
-        </div>
-        <div>
-          <p className="eyebrow">Value-added ratio</p>
-          <p style={{ font: "var(--text-h1)" }}>{formatPct(view.value_added_ratio)}</p>
-        </div>
-      </div>
+      </HudPanel>
 
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Cost by zone
-      </p>
-      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
-        {view.cost_by_zone.map((zone) => (
-          <div key={zone.zone}>
-            <p className="eyebrow">{zone.zone}</p>
-            <p className="data">{formatCost(zone.total_cost_per_hour)}</p>
-            <p className="data">{formatPct(zone.value_added_ratio)} value-added</p>
-          </div>
-        ))}
-      </div>
-
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Sensor retrofit candidates ({view.sensor_retrofit_candidates.length})
-      </p>
-      <p>Manual stations, ranked by recurring defect impact and economic weight.</p>
-      <table className="data" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Station</th>
-            <th>Zone</th>
-            <th>Cost</th>
-            <th>Value-add</th>
-            <th>Economic weight</th>
-            <th>Recurring defects</th>
-          </tr>
-        </thead>
-        <tbody>
-          {view.sensor_retrofit_candidates.map((candidate) => (
-            <tr key={candidate.station_id}>
-              <td>{candidate.station_id}</td>
-              <td>{candidate.zone}</td>
-              <td>{formatCost(candidate.cost_per_hour)}</td>
-              <td>{candidate.value_add_pct.toFixed(1)}%</td>
-              <td>{candidate.economic_weight.toFixed(2)}</td>
-              <td>{candidate.recurring_defect_occurrences}</td>
-            </tr>
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Cost by zone
+        </p>
+        <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
+          {view.cost_by_zone.map((zone) => (
+            <div key={zone.zone}>
+              <p className="eyebrow">{zone.zone}</p>
+              <p className="data">{formatCost(zone.total_cost_per_hour)}</p>
+              <p className="data">{formatPct(zone.value_added_ratio)} value-added</p>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </HudPanel>
+
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Sensor retrofit candidates ({view.sensor_retrofit_candidates.length})
+        </p>
+        <p>Manual stations, ranked by recurring defect impact and economic weight.</p>
+        <table className="data" style={{ width: "100%" }}>
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th>Zone</th>
+              <th>Cost</th>
+              <th>Value-add</th>
+              <th>Economic weight</th>
+              <th>Recurring defects</th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.sensor_retrofit_candidates.map((candidate) => (
+              <tr key={candidate.station_id}>
+                <td>{candidate.station_id}</td>
+                <td>{candidate.zone}</td>
+                <td>{formatCost(candidate.cost_per_hour)}</td>
+                <td>{candidate.value_add_pct.toFixed(1)}%</td>
+                <td>{candidate.economic_weight.toFixed(2)}</td>
+                <td>{candidate.recurring_defect_occurrences}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </HudPanel>
     </div>
   );
 }

@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 
+import { HudPanel } from "../components/HudPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import {
   approveActProposal,
@@ -90,8 +91,8 @@ function ActProposalsPanel() {
   const pending = proposals.filter((p) => p.status === "pending");
 
   return (
-    <>
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
+    <HudPanel accentColor="var(--color-beacon-amber)">
+      <p className="eyebrow" style={{ margin: 0 }}>
         Act proposals pending approval ({pending.length})
       </p>
       {pending.length === 0 ? (
@@ -125,7 +126,7 @@ function ActProposalsPanel() {
           </div>
         ))
       )}
-    </>
+    </HudPanel>
   );
 }
 
@@ -158,122 +159,132 @@ export function FloorSupervisorView() {
       >
         <p className="eyebrow">Floor Supervisor view</p>
 
-        <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
-          Active alerts ({view.active_alert_station_ids.length})
-        </p>
-        {view.active_alert_station_ids.length === 0 ? (
-          <p>No stations currently in alarm.</p>
-        ) : (
-          <p style={{ color: "var(--color-beacon-red)" }}>
-            {view.active_alert_station_ids.join(", ")}
+        <HudPanel accentColor={view.active_alert_station_ids.length > 0 ? "var(--color-beacon-red)" : undefined}>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            Active alerts ({view.active_alert_station_ids.length})
           </p>
-        )}
+          {view.active_alert_station_ids.length === 0 ? (
+            <p>No stations currently in alarm.</p>
+          ) : (
+            <p style={{ color: "var(--color-beacon-red)" }}>
+              {view.active_alert_station_ids.join(", ")}
+            </p>
+          )}
+        </HudPanel>
 
-        <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-          SPC alarms ({view.spc_alarms.length})
-        </p>
-        {view.spc_alarms.length === 0 ? (
-          <p>No stations out of control.</p>
-        ) : (
-          view.spc_alarms.map((alarm) => (
-            <div
-              key={alarm.station_id}
-              style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
-            >
-              <p className="eyebrow">
-                {alarm.station_id} · {alarm.quantity}
-              </p>
-              <StatusBadge token={SPC_STATE_TOKENS[alarm.state]} />
-              {alarm.rule_triggered && <p>{alarm.rule_triggered}</p>}
-              <AssignControl issueId={alarm.station_id} assignedTo={view.issue_assignments[alarm.station_id]} />
-            </div>
-          ))
-        )}
+        <HudPanel>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            SPC alarms ({view.spc_alarms.length})
+          </p>
+          {view.spc_alarms.length === 0 ? (
+            <p>No stations out of control.</p>
+          ) : (
+            view.spc_alarms.map((alarm) => (
+              <div
+                key={alarm.station_id}
+                style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
+              >
+                <p className="eyebrow">
+                  {alarm.station_id} · {alarm.quantity}
+                </p>
+                <StatusBadge token={SPC_STATE_TOKENS[alarm.state]} />
+                {alarm.rule_triggered && <p>{alarm.rule_triggered}</p>}
+                <AssignControl issueId={alarm.station_id} assignedTo={view.issue_assignments[alarm.station_id]} />
+              </div>
+            ))
+          )}
+        </HudPanel>
 
-        <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-          High-risk cars ({view.high_risk_cars.length})
-        </p>
-        {view.high_risk_cars.length === 0 ? (
-          <p>No high-risk cars currently on the line.</p>
-        ) : (
-          view.high_risk_cars.map((car) => (
-            <div
-              key={car.car_id}
-              style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
-            >
-              <p className="eyebrow">
-                {car.car_id} · at {car.current_station_id}
-              </p>
-              <StatusBadge token={RISK_LEVEL_TOKENS[car.risk_level]} />
-              <p>
-                {car.stations_remaining} station{car.stations_remaining === 1 ? "" : "s"} until{" "}
-                {car.next_inspection_station_id}
-              </p>
-              <AssignControl issueId={car.car_id} assignedTo={view.issue_assignments[car.car_id]} />
-            </div>
-          ))
-        )}
+        <HudPanel>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            High-risk cars ({view.high_risk_cars.length})
+          </p>
+          {view.high_risk_cars.length === 0 ? (
+            <p>No high-risk cars currently on the line.</p>
+          ) : (
+            view.high_risk_cars.map((car) => (
+              <div
+                key={car.car_id}
+                style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
+              >
+                <p className="eyebrow">
+                  {car.car_id} · at {car.current_station_id}
+                </p>
+                <StatusBadge token={RISK_LEVEL_TOKENS[car.risk_level]} />
+                <p>
+                  {car.stations_remaining} station{car.stations_remaining === 1 ? "" : "s"} until{" "}
+                  {car.next_inspection_station_id}
+                </p>
+                <AssignControl issueId={car.car_id} assignedTo={view.issue_assignments[car.car_id]} />
+              </div>
+            ))
+          )}
+        </HudPanel>
 
-        <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-          Bottleneck warnings ({view.bottleneck_warnings.length})
-        </p>
-        {view.bottleneck_warnings.length === 0 ? (
-          <p>No developing bottlenecks.</p>
-        ) : (
-          view.bottleneck_warnings.map((warning) => (
-            <div
-              key={warning.station_id}
-              style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
-            >
-              <p className="eyebrow">
-                {warning.station_id} · {warning.predicted_state}
-              </p>
-              <p>
-                {warning.minutes_to_onset !== null
-                  ? `${warning.minutes_to_onset.toFixed(1)} min to onset`
-                  : "onset unknown"}
-                {warning.contributing_upstream_station &&
-                  ` (from ${warning.contributing_upstream_station})`}
-              </p>
-              <AssignControl
-                issueId={warning.station_id}
-                assignedTo={view.issue_assignments[warning.station_id]}
-              />
-            </div>
-          ))
-        )}
+        <HudPanel>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            Bottleneck warnings ({view.bottleneck_warnings.length})
+          </p>
+          {view.bottleneck_warnings.length === 0 ? (
+            <p>No developing bottlenecks.</p>
+          ) : (
+            view.bottleneck_warnings.map((warning) => (
+              <div
+                key={warning.station_id}
+                style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
+              >
+                <p className="eyebrow">
+                  {warning.station_id} · {warning.predicted_state}
+                </p>
+                <p>
+                  {warning.minutes_to_onset !== null
+                    ? `${warning.minutes_to_onset.toFixed(1)} min to onset`
+                    : "onset unknown"}
+                  {warning.contributing_upstream_station &&
+                    ` (from ${warning.contributing_upstream_station})`}
+                </p>
+                <AssignControl
+                  issueId={warning.station_id}
+                  assignedTo={view.issue_assignments[warning.station_id]}
+                />
+              </div>
+            ))
+          )}
+        </HudPanel>
 
         <ActProposalsPanel />
 
-        <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-          All stations
-        </p>
-        <table className="data" style={{ width: "100%" }}>
-          <thead>
-            <tr>
-              <th>Station</th>
-              <th>Car</th>
-              <th>Sensor</th>
-              <th>Machine</th>
-              <th>Buffer</th>
-            </tr>
-          </thead>
-          <tbody>
-            {view.line_state.stations.map((station) => (
-              <tr key={station.station_id}>
-                <td>{station.station_id}</td>
-                <td>{station.car_id ?? "N/A"}</td>
-                <td>
-                  <StatusBadge token={SENSOR_HEALTH_TOKENS[station.sensor_health]} />
-                </td>
-                <td>
-                  <StatusBadge token={MACHINE_HEALTH_TOKENS[station.machine_health]} />
-                </td>
-                <td>{station.upstream_buffer_depth}</td>
+        <HudPanel>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            All stations
+          </p>
+          <table className="data" style={{ width: "100%", marginTop: "var(--space-2)" }}>
+            <thead>
+              <tr>
+                <th>Station</th>
+                <th>Car</th>
+                <th>Sensor</th>
+                <th>Machine</th>
+                <th>Buffer</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {view.line_state.stations.map((station) => (
+                <tr key={station.station_id}>
+                  <td>{station.station_id}</td>
+                  <td>{station.car_id ?? "N/A"}</td>
+                  <td>
+                    <StatusBadge token={SENSOR_HEALTH_TOKENS[station.sensor_health]} />
+                  </td>
+                  <td>
+                    <StatusBadge token={MACHINE_HEALTH_TOKENS[station.machine_health]} />
+                  </td>
+                  <td>{station.upstream_buffer_depth}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </HudPanel>
       </div>
     </div>
   );

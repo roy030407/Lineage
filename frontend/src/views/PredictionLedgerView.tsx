@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 
+import { HudPanel } from "../components/HudPanel";
 import { getPredictMetricsByStation, getPredictTrend } from "../state/api";
 import type { LedgerMetrics, TrendState } from "../state/types";
 
@@ -121,51 +122,57 @@ export function PredictionLedgerView() {
     <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
       <p className="eyebrow">Prediction Ledger: per station</p>
 
-      {stationIds.length === 0 ? (
-        <p>No resolved predictions yet for this run.</p>
-      ) : (
-        <table className="data" style={{ width: "100%", marginTop: "var(--space-4)" }}>
-          <thead>
-            <tr>
-              <th>Station</th>
-              <th>Sample size</th>
-              <th>Precision</th>
-              <th>Recall</th>
-              <th>False alarm rate</th>
-              <th>Trust score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stationIds.map((stationId) => (
-              <MetricsRow key={stationId} stationId={stationId} metrics={byStation[stationId]} />
-            ))}
-          </tbody>
-        </table>
-      )}
+      <HudPanel>
+        {stationIds.length === 0 ? (
+          <p style={{ margin: 0 }}>No resolved predictions yet for this run.</p>
+        ) : (
+          <table className="data" style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <th>Station</th>
+                <th>Sample size</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>False alarm rate</th>
+                <th>Trust score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stationIds.map((stationId) => (
+                <MetricsRow key={stationId} stationId={stationId} metrics={byStation[stationId]} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </HudPanel>
 
-      <div style={{ marginTop: "var(--space-8)" }}>
-        <p className="eyebrow">Post-intervention trend</p>
-        <select value={trendStationId} onChange={(e) => setTrendStationId(e.target.value)}>
-          <option value="">Select a station…</option>
-          {stationIds.map((stationId) => (
-            <option key={stationId} value={stationId}>
-              {stationId}
-            </option>
-          ))}
-        </select>
-        <input
-          type="datetime-local"
-          value={interventionAt}
-          onChange={(e) => setInterventionAt(e.target.value)}
-          style={{ marginLeft: "var(--space-2)" }}
-        />
-        <button
-          onClick={() => void checkTrend()}
-          disabled={!trendStationId || !interventionAt}
-          style={{ marginLeft: "var(--space-2)" }}
-        >
-          Check trend
-        </button>
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Post-intervention trend
+        </p>
+        <div style={{ marginTop: "var(--space-2)" }}>
+          <select value={trendStationId} onChange={(e) => setTrendStationId(e.target.value)}>
+            <option value="">Select a station…</option>
+            {stationIds.map((stationId) => (
+              <option key={stationId} value={stationId}>
+                {stationId}
+              </option>
+            ))}
+          </select>
+          <input
+            type="datetime-local"
+            value={interventionAt}
+            onChange={(e) => setInterventionAt(e.target.value)}
+            style={{ marginLeft: "var(--space-2)" }}
+          />
+          <button
+            onClick={() => void checkTrend()}
+            disabled={!trendStationId || !interventionAt}
+            style={{ marginLeft: "var(--space-2)" }}
+          >
+            Check trend
+          </button>
+        </div>
 
         {trend === null && (
           <p style={{ marginTop: "var(--space-2)" }}>Not enough data yet for a verdict.</p>
@@ -176,7 +183,7 @@ export function PredictionLedgerView() {
             {trendError}
           </p>
         )}
-      </div>
+      </HudPanel>
     </div>
   );
 }

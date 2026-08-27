@@ -7,6 +7,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { HudPanel } from "../components/HudPanel";
+import { StatTile } from "../components/StatTile";
 import { getPlantManagerView } from "../state/api";
 import type { PlantManagerView as PlantManagerViewData } from "../state/types";
 
@@ -65,120 +67,124 @@ export function PlantManagerView() {
         </button>
       </div>
 
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Defect rate by zone
-      </p>
-      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
-        {view.defect_rate_by_zone.map((zone) => (
-          <div key={zone.zone}>
-            <p className="eyebrow">{zone.zone}</p>
-            <p style={{ font: "var(--text-h1)" }}>{formatPct(zone.fail_rate)}</p>
-            <p className="data">
-              {zone.fail_count} / {zone.total_inspections}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Defect rate by station
-      </p>
-      <table className="data" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Station</th>
-            <th>Zone</th>
-            <th>Inspections</th>
-            <th>Fails</th>
-            <th>Fail rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {view.defect_rate_by_station.map((station) => (
-            <tr key={station.station_id}>
-              <td>{station.station_id}</td>
-              <td>{station.zone}</td>
-              <td>{station.total_inspections}</td>
-              <td>{station.fail_count}</td>
-              <td>{formatPct(station.fail_rate)}</td>
-            </tr>
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Defect rate by zone
+        </p>
+        <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
+          {view.defect_rate_by_zone.map((zone) => (
+            <div key={zone.zone}>
+              <StatTile label={zone.zone} value={zone.fail_rate * 100} format={(n) => `${n.toFixed(1)}%`} />
+              <p className="data">
+                {zone.fail_count} / {zone.total_inspections}
+              </p>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </HudPanel>
 
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Rework volume
-      </p>
-      <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
-        <div>
-          <p className="eyebrow">Defect events</p>
-          <p style={{ font: "var(--text-h1)" }}>{view.rework.total_defect_events}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Cars requiring rework</p>
-          <p style={{ font: "var(--text-h1)" }}>{view.rework.cars_requiring_rework}</p>
-        </div>
-        <div>
-          <p className="eyebrow">Rework rate</p>
-          <p style={{ font: "var(--text-h1)" }}>{formatPct(view.rework.rework_rate)}</p>
-        </div>
-      </div>
-
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Recurring root causes
-      </p>
-      {view.recurring_root_causes.length === 0 ? (
-        <p>No traced defects yet for this run.</p>
-      ) : (
-        <table className="data" style={{ width: "100%" }}>
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Defect rate by station
+        </p>
+        <table className="data" style={{ width: "100%", marginTop: "var(--space-2)" }}>
           <thead>
             <tr>
-              <th>Origin station</th>
-              <th>Occurrences</th>
-              <th>Example cars</th>
+              <th>Station</th>
+              <th>Zone</th>
+              <th>Inspections</th>
+              <th>Fails</th>
+              <th>Fail rate</th>
             </tr>
           </thead>
           <tbody>
-            {view.recurring_root_causes.map((cause) => (
-              <tr key={cause.station_id}>
-                <td>{cause.station_id}</td>
-                <td>{cause.occurrence_count}</td>
-                <td>{cause.example_car_ids.join(", ")}</td>
+            {view.defect_rate_by_station.map((station) => (
+              <tr key={station.station_id}>
+                <td>{station.station_id}</td>
+                <td>{station.zone}</td>
+                <td>{station.total_inspections}</td>
+                <td>{station.fail_count}</td>
+                <td>{formatPct(station.fail_rate)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      )}
+      </HudPanel>
 
-      <p className="eyebrow" style={{ marginTop: "var(--space-6)" }}>
-        Maintenance: schedule vs. predicted need
-      </p>
-      <table className="data" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Station</th>
-            <th>Machine</th>
-            <th>Days since maintenance</th>
-            <th>Days until due</th>
-            <th>Recent wear state</th>
-          </tr>
-        </thead>
-        <tbody>
-          {view.maintenance_status.map((status) => (
-            <tr key={status.station_id}>
-              <td>{status.station_id}</td>
-              <td>{status.machine_model}</td>
-              <td>{status.days_since_maintenance.toFixed(1)}</td>
-              <td style={{ color: status.days_until_due < 0 ? "var(--color-beacon-red)" : undefined }}>
-                {status.days_until_due.toFixed(1)}
-              </td>
-              <td>
-                {status.recent_wear_state === null ? "N/A" : status.recent_wear_state.toFixed(2)}
-              </td>
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Rework volume
+        </p>
+        <div style={{ display: "flex", gap: "var(--space-8)", marginTop: "var(--space-2)" }}>
+          <StatTile label="Defect events" value={view.rework.total_defect_events} />
+          <StatTile label="Cars requiring rework" value={view.rework.cars_requiring_rework} />
+          <StatTile
+            label="Rework rate"
+            value={view.rework.rework_rate * 100}
+            format={(n) => `${n.toFixed(1)}%`}
+          />
+        </div>
+      </HudPanel>
+
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Recurring root causes
+        </p>
+        {view.recurring_root_causes.length === 0 ? (
+          <p>No traced defects yet for this run.</p>
+        ) : (
+          <table className="data" style={{ width: "100%", marginTop: "var(--space-2)" }}>
+            <thead>
+              <tr>
+                <th>Origin station</th>
+                <th>Occurrences</th>
+                <th>Example cars</th>
+              </tr>
+            </thead>
+            <tbody>
+              {view.recurring_root_causes.map((cause) => (
+                <tr key={cause.station_id}>
+                  <td>{cause.station_id}</td>
+                  <td>{cause.occurrence_count}</td>
+                  <td>{cause.example_car_ids.join(", ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </HudPanel>
+
+      <HudPanel>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Maintenance: schedule vs. predicted need
+        </p>
+        <table className="data" style={{ width: "100%", marginTop: "var(--space-2)" }}>
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th>Machine</th>
+              <th>Days since maintenance</th>
+              <th>Days until due</th>
+              <th>Recent wear state</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {view.maintenance_status.map((status) => (
+              <tr key={status.station_id}>
+                <td>{status.station_id}</td>
+                <td>{status.machine_model}</td>
+                <td>{status.days_since_maintenance.toFixed(1)}</td>
+                <td style={{ color: status.days_until_due < 0 ? "var(--color-beacon-red)" : undefined }}>
+                  {status.days_until_due.toFixed(1)}
+                </td>
+                <td>
+                  {status.recent_wear_state === null ? "N/A" : status.recent_wear_state.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </HudPanel>
     </div>
   );
 }

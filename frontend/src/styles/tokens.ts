@@ -24,6 +24,10 @@ export const PALETTE = {
   zoneBody: "#5b7a9a", // muted steel-blue -- Builder node header stripes only, never a status colour
   zonePaint: "#8a6a9e", // muted plume/violet
   zoneFinal: "#a98249", // muted bronze
+  hudAccent: "#5ec9d6", // HUD panel border/focus accent -- a cyan deliberately outside every
+  // status colour (green/amber/red/steelNeutral) and zone colour above, so it always reads as
+  // "this is UI chrome", never as a health or zone signal of its own.
+  hudPanelDeep: "#171813", // darker-than-foundry panel backing, for the HUD "floating card" look
 } as const;
 
 export const FONT_FAMILIES = {
@@ -63,6 +67,25 @@ export const WIDTHS = {
   builderColumn: "360px",
   readableMeasure: "480px",
 } as const;
+
+// HUD-panel chrome (Phase 5 of the gamified rebuild): a single dial each for
+// "how chunky do corners read" and "how thick does a border read" -- bump
+// these once here, every panel/tile built on them reads rounder/bolder
+// immediately, rather than each component guessing its own border-radius.
+export const RADIUS = {
+  sm: "4px",
+  md: "8px",
+  chunky: "14px",
+} as const;
+
+export const BORDER_WIDTH = {
+  hairline: "1px",
+  chunky: "2px",
+} as const;
+
+// A single value, not a record -- HudPanel's "floating card over the
+// industrial background" look needs exactly one drop shadow, not a scale.
+export const PANEL_SHADOW = "0 8px 24px rgba(0, 0, 0, 0.5)";
 
 export type ShapeToken = "circle" | "triangle" | "diamond" | "hexagon" | "ring";
 
@@ -148,5 +171,12 @@ export function applyDesignTokens(): void {
   for (const [name, value] of Object.entries(WIDTHS)) {
     root.setProperty(`--width-${kebabCase(name)}`, value);
   }
+  for (const [name, value] of Object.entries(RADIUS)) {
+    root.setProperty(`--radius-${name}`, value);
+  }
+  for (const [name, value] of Object.entries(BORDER_WIDTH)) {
+    root.setProperty(`--border-width-${kebabCase(name)}`, value);
+  }
+  root.setProperty("--shadow-panel", PANEL_SHADOW);
   root.setProperty("--letter-spacing-eyebrow", EYEBROW_LETTER_SPACING);
 }

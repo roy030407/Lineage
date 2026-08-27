@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { HudPanel } from "../components/HudPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import { getOperatorView } from "../state/api";
 import { useLineageStore } from "../state/store";
@@ -143,8 +144,8 @@ export function OperatorView() {
           Loading station state…
         </p>
       ) : (
-        <>
-          <h2 style={{ font: "var(--text-h1)" }}>{view.station_name}</h2>
+        <HudPanel>
+          <h2 style={{ font: "var(--text-h1)", marginTop: 0 }}>{view.station_name}</h2>
           <p className="eyebrow">{view.station_id}</p>
 
           <p className="eyebrow" style={{ marginTop: "var(--space-4)" }}>
@@ -223,7 +224,7 @@ export function OperatorView() {
             stationId={view.station_id}
             recalibrating={view.spc_verdict?.recalibrating ?? false}
           />
-        </>
+        </HudPanel>
       )}
     </div>
   );
