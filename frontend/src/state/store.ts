@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { getCar, getLine, listRuns, replayControl } from "./api";
+import { getCar, getLine, listRuns, replayControl, simulateRun } from "./api";
 import type { CarTwin, LineSpec, LineState, Role, RunSummary } from "./types";
 
 interface LineageStore {
@@ -15,6 +15,8 @@ interface LineageStore {
   followedCarId: string | null;
   role: Role;
   builderOpen: boolean;
+  simulating: boolean;
+  simulateError: string | null;
 
   loadLineSpec: () => Promise<void>;
   loadRuns: () => Promise<void>;
@@ -27,6 +29,7 @@ interface LineageStore {
   setBuilderOpen: (open: boolean) => void;
 
   loadRun: (runId: string) => Promise<void>;
+  simulate: () => Promise<void>;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   step: () => Promise<void>;
@@ -45,6 +48,8 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   followedCarId: null,
   role: "mirror",
   builderOpen: false,
+  simulating: false,
+  simulateError: null,
 
   loadLineSpec: async () => {
     const lineSpec = await getLine();
@@ -82,6 +87,21 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
 
   loadRun: async (runId) => {
     await replayControl({ action: "load", run_id: runId });
+  },
+  simulate: async () => {
+    set({ simulating: true, simulateError: null });
+    try {
+      await simulateRun();
+      // The backend already loaded it (load_run_into_state); this just
+      // starts it playing and refreshes the run-picker list so the freshly
+      // generated run shows up there too, not just via this button.
+      await replayControl({ action: "play" });
+      await get().loadRuns();
+    } catch (err) {
+      set({ simulateError: err instanceof Error ? err.message : String(err) });
+    } finally {
+      set({ simulating: false });
+    }
   },
   play: async () => {
     await replayControl({ action: "play" });

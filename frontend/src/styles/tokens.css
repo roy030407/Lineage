@@ -56,3 +56,19 @@ button:focus-visible,
   outline: 2px solid var(--color-beacon-amber);
   outline-offset: 2px;
 }
+
+/* "Simulate" button's in-progress state: a fresh run genuinely takes ~11s
+   to generate, so this needs to read as "working," not "stuck." */
+@keyframes lineage-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.pulse {
+  animation: lineage-pulse 1.1s ease-in-out infinite;
+}

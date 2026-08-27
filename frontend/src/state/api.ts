@@ -275,3 +275,17 @@ export async function replayControl(request: ReplayControlRequest): Promise<void
     throw new Error(`replay control ${request.action} failed: ${response.status}`);
   }
 }
+
+export interface SimulateResult {
+  run_id: string;
+  num_cars: number;
+}
+
+// Generates a fresh 400-car run against the currently loaded line (same
+// scenario shape as the committed default run, fresh seed and today's
+// start time) and loads it immediately -- confirmed ~11s wall-clock on a
+// real 42-station line, so the caller should show real progress, not a
+// bare disabled button, for that whole window.
+export function simulateRun(): Promise<SimulateResult> {
+  return postJson<SimulateResult>("/api/datagen/simulate");
+}

@@ -6,6 +6,7 @@ environmental excursion at ST-25 surfacing at ST-26, and an unflagged
 operator-handover shift at manual station ST-02 surfacing at ST-16.
 """
 
+from datetime import datetime
 from pathlib import Path
 
 from lineage.config.loader import load_line_spec
@@ -75,12 +76,29 @@ def _default_operator_setup(
     return profiles, schedule
 
 
-def build_default_run_config(line: LineSpec) -> RunConfig:
+DEFAULT_SIM_START_TIME = datetime(2024, 1, 1)
+
+
+def build_run_config(
+    line: LineSpec,
+    *,
+    run_id: str,
+    random_seed: int,
+    sim_start_time: datetime = DEFAULT_SIM_START_TIME,
+) -> RunConfig:
+    """The shared shape behind every run this app generates: the same three
+    named scenarios (torque drift at ST-06, a paint-booth excursion, an
+    unflagged operator-handover shift at ST-02) that give Trace/SPC/Act/
+    Prediction real, traceable findings to show -- only run_id/random_seed/
+    sim_start_time vary between callers. build_default_run_config below is
+    the frozen, exact-signature wrapper every existing caller/test already
+    depends on; api/routes/datagen.py's on-demand "Simulate" endpoint is
+    the other caller, with a fresh seed and today's start time instead."""
     operator_profiles, operator_shift_schedule = _default_operator_setup(line)
 
     return RunConfig(
-        run_id="default_400_car_run",
-        random_seed=20240101,
+        run_id=run_id,
+        random_seed=random_seed,
         num_cars=400,
         background_defect_rate=0.0005,
         defect_z_threshold=3.0,
@@ -108,7 +126,12 @@ def build_default_run_config(line: LineSpec) -> RunConfig:
         baseline_temp_c=22.0,
         operator_profiles=operator_profiles,
         operator_shift_schedule=operator_shift_schedule,
+        sim_start_time=sim_start_time,
     )
+
+
+def build_default_run_config(line: LineSpec) -> RunConfig:
+    return build_run_config(line, run_id="default_400_car_run", random_seed=20240101)
 
 
 def main() -> None:

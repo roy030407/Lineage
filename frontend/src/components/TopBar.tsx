@@ -29,6 +29,9 @@ export function TopBar() {
   const setRole = useLineageStore((s) => s.setRole);
   const builderOpen = useLineageStore((s) => s.builderOpen);
   const setBuilderOpen = useLineageStore((s) => s.setBuilderOpen);
+  const simulating = useLineageStore((s) => s.simulating);
+  const simulateError = useLineageStore((s) => s.simulateError);
+  const simulate = useLineageStore((s) => s.simulate);
 
   useEffect(() => {
     void loadRuns();
@@ -48,6 +51,26 @@ export function TopBar() {
       }}
     >
       <span style={{ font: "var(--text-h1)" }}>{lineSpec?.plant_name ?? "Lineage"}</span>
+
+      <button
+        onClick={() => void simulate()}
+        disabled={simulating}
+        className={simulating ? "pulse" : undefined}
+        style={{
+          background: "var(--color-beacon-green)",
+          color: "var(--color-foundry)",
+          fontWeight: 600,
+          border: "none",
+        }}
+        title="Generate a fresh run and start playing it immediately"
+      >
+        {simulating ? "Simulating…" : "Simulate"}
+      </button>
+      {simulateError && (
+        <span className="data" style={{ color: "var(--color-beacon-red)" }}>
+          {simulateError}
+        </span>
+      )}
 
       <select
         value={role}
