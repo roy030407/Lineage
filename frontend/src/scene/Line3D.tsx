@@ -12,6 +12,7 @@ import type { StationCoordinate, StationState, Zone } from "../state/types";
 import { PALETTE } from "../styles/tokens";
 import { Car3D } from "./Car3D";
 import { Station3D } from "./Station3D";
+import { toonGradientMap } from "./toonGradient";
 
 const ZONE_LABEL_TEXT: Record<Zone, string> = { body: "BODY", paint: "PAINT", final: "FINAL" };
 const ZONE_LABEL_HEIGHT = 4.5; // clears the beacon masts (see Station3D) so it reads as a row header, not clutter
@@ -39,7 +40,7 @@ function ConveyorSegment3D({ from, to }: { from: StationCoordinate; to: StationC
   return (
     <mesh position={position} rotation={[0, angle, 0]} receiveShadow>
       <boxGeometry args={[0.6, 0.15, length]} />
-      <meshStandardMaterial color={PALETTE.steelNeutral} roughness={0.9} />
+      <meshToonMaterial color={PALETTE.steelNeutral} gradientMap={toonGradientMap()} />
     </mesh>
   );
 }
@@ -70,7 +71,7 @@ function BufferStack({ from, to, depth }: { from: StationCoordinate; to: Station
       {markers.map((position, i) => (
         <mesh key={i} position={position}>
           <boxGeometry args={[0.3, 0.3, 0.3]} />
-          <meshStandardMaterial color={PALETTE.vellum} roughness={0.7} />
+          <meshToonMaterial color={PALETTE.vellum} gradientMap={toonGradientMap()} />
         </mesh>
       ))}
     </>

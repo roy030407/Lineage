@@ -27,6 +27,7 @@ import {
   SENSOR_HEALTH_TOKENS,
   type ShapeToken,
 } from "../styles/tokens";
+import { toonGradientMap } from "./toonGradient";
 
 // Exported so Car3D can position cars relative to the station's actual
 // height instead of duplicating the literal -- a car nested inside the
@@ -44,18 +45,22 @@ const LAMP_X_OFFSET = 0.3;
 // so every shape reads as a distinct silhouette even in monochrome:
 // sphere (circle), a 3-sided cone (triangle), an octahedron (diamond), a
 // 6-sided cylinder (hexagon), and a torus (ring/hollow -- no signal).
+// Sized up ~15-20% from the original PBR-shaded pass -- toon shading's
+// flat colour bands read best on slightly bolder shapes; this is standalone
+// lamp geometry with no other constant deriving from it, so no cascading
+// risk the way changing BLOCK_SIZE/CAR_SIZE would have.
 function ShapeGeometry({ shape }: { shape: ShapeToken }) {
   switch (shape) {
     case "circle":
-      return <sphereGeometry args={[0.22, 16, 16]} />;
+      return <sphereGeometry args={[0.26, 16, 16]} />;
     case "triangle":
-      return <coneGeometry args={[0.26, 0.42, 3]} />;
+      return <coneGeometry args={[0.3, 0.48, 3]} />;
     case "diamond":
-      return <octahedronGeometry args={[0.26, 0]} />;
+      return <octahedronGeometry args={[0.3, 0]} />;
     case "hexagon":
-      return <cylinderGeometry args={[0.24, 0.24, 0.18, 6]} />;
+      return <cylinderGeometry args={[0.28, 0.28, 0.2, 6]} />;
     case "ring":
-      return <torusGeometry args={[0.16, 0.07, 8, 16]} />;
+      return <torusGeometry args={[0.19, 0.08, 8, 16]} />;
   }
 }
 
@@ -168,10 +173,9 @@ export function Station3D({
         onPointerOut={() => setHovered(false)}
       >
         <boxGeometry args={BLOCK_SIZE} />
-        <meshStandardMaterial
+        <meshToonMaterial
           color={PALETTE.castSteel}
-          roughness={0.85}
-          metalness={0.1}
+          gradientMap={toonGradientMap()}
           emissive={PALETTE.beaconAmber}
           emissiveIntensity={isSelected ? 0.25 : 0}
         />
@@ -180,7 +184,7 @@ export function Station3D({
       {/* Beacon mast -- the signature element; see DESIGN.md */}
       <mesh position={[0, BLOCK_SIZE[1] / 2 + MAST_HEIGHT / 2, 0]}>
         <cylinderGeometry args={[MAST_RADIUS, MAST_RADIUS, MAST_HEIGHT, 8]} />
-        <meshStandardMaterial color={PALETTE.castSteel} roughness={0.6} metalness={0.4} />
+        <meshToonMaterial color={PALETTE.castSteel} gradientMap={toonGradientMap()} />
       </mesh>
 
       <StatusLamp position={sensorLampPos} color={sensorToken.color} shape={sensorToken.shape} />

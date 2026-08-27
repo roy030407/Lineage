@@ -1,6 +1,6 @@
 // react-three-fiber canvas root: camera, lights, and the Line3D scene graph.
 
-import { OrbitControls } from "@react-three/drei";
+import { ContactShadows, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { ElementRef } from "react";
 import { useEffect, useRef } from "react";
@@ -121,15 +121,24 @@ export function Scene() {
         style={{ background: PALETTE.foundry }}
         onCreated={(state) => setTestScene(state.scene, state.camera, state.gl)}
       >
-        <ambientLight intensity={0.6} />
+        {/* Ambient dropped from 0.6: that high, it washed out the toon
+            shading's light/dark bands entirely, reading flat/CAD-like
+            instead of chunky. The key light does the real modelling work
+            now; a second, dimmer, cool-tinted light from roughly the
+            opposite side catches edges the key light leaves in shadow --
+            the classic two-point setup that sells a toy-diorama silhouette
+            rather than one that just goes fully black on its far side. */}
+        <ambientLight intensity={0.28} />
         <directionalLight
           position={[80, 120, 40]}
-          intensity={1.1}
+          intensity={1.15}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
+        <directionalLight position={[-70, 50, -50]} intensity={0.35} color="#a9c6e0" />
         <Line3D />
+        <ContactShadows position={[0, -0.02, 0]} opacity={0.45} blur={2.2} far={40} scale={300} />
         <OrbitControls ref={controlsRef} makeDefault minDistance={5} maxDistance={2000} maxPolarAngle={Math.PI / 2.05} />
         <InitialFraming controlsRef={controlsRef} />
         <CameraRig controlsRef={controlsRef} />

@@ -10,6 +10,7 @@ import * as THREE from "three";
 import type { LineState, StationCoordinate } from "../state/types";
 import { PALETTE } from "../styles/tokens";
 import { BLOCK_SIZE } from "./Station3D";
+import { toonGradientMap } from "./toonGradient";
 
 const MAX_CARS = 80;
 const LERP_SPEED = 4; // higher = snappier catch-up to the target position
@@ -119,7 +120,7 @@ export function Car3D({
       }}
     >
       <boxGeometry args={CAR_SIZE} />
-      <meshStandardMaterial roughness={0.6} metalness={0.15} />
+      <meshToonMaterial gradientMap={toonGradientMap()} />
     </instancedMesh>
   );
 }
