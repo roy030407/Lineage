@@ -22,6 +22,25 @@ const CAR_GAP_ABOVE_STATION = 0.1;
 // station's top surface plus half the car's own height plus a visible gap.
 export const CAR_Y = BLOCK_SIZE[1] + CAR_SIZE[1] / 2 + CAR_GAP_ABOVE_STATION;
 
+// Phase 7 "juice": a brief squash-then-recover bounce plays whenever a car
+// arrives at a new station -- a cheap, purely visual scale envelope layered
+// on top of the existing lerp-based position update. Keyed by car id (not
+// instance index): activeCars[i] is a fresh array built from lineState every
+// frame, so the same index i can end up holding a different car between
+// frames as cars enter/leave the line -- keying by index would occasionally
+// fire a false bounce for a car that just inherited a slot, not actually
+// arrived anywhere.
+const BOUNCE_DURATION_S = 0.35;
+const BOUNCE_AMPLITUDE = 0.22;
+
+function bounceEnvelope(elapsedS: number): number {
+  if (elapsedS < 0 || elapsedS >= BOUNCE_DURATION_S) return 0;
+  const t = elapsedS / BOUNCE_DURATION_S;
+  // A single damped half-cycle: peaks early, decays to 0 by t=1 -- reads as
+  // a squash-and-recover, not a sustained wobble.
+  return BOUNCE_AMPLITUDE * Math.sin(t * Math.PI) * (1 - t);
+}
+
 interface Props {
   lineState: LineState | null;
   coordinatesByStation: Map<string, StationCoordinate>;
@@ -40,12 +59,16 @@ export function Car3D({
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const currentPositions = useRef<Map<number, THREE.Vector3>>(new Map());
   const carIdByInstance = useRef<Map<number, string>>(new Map());
+  const arrivalTrackingByCarId = useRef<Map<string, { stationId: string; arrivalTime: number }>>(
+    new Map(),
+  );
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const color = useMemo(() => new THREE.Color(), []);
 
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     const mesh = meshRef.current;
     if (!mesh) return;
+    const elapsedTime = state.clock.elapsedTime;
 
     const activeCars = lineState
       ? lineState.stations
@@ -55,18 +78,43 @@ export function Car3D({
 
     carIdByInstance.current.clear();
 
+    const seenCarIds = new Set<string>();
     for (let i = 0; i < MAX_CARS; i++) {
       const entry = activeCars[i];
       const current =
         currentPositions.current.get(i) ?? HIDDEN_POSITION.clone();
 
       let target = HIDDEN_POSITION;
+      let bounce = 0;
       if (entry) {
         const coord = coordinatesByStation.get(entry.stationId);
         if (coord) {
           target = new THREE.Vector3(coord.x_m, CAR_Y, coord.y_m);
         }
         carIdByInstance.current.set(i, entry.carId);
+        seenCarIds.add(entry.carId);
+
+        const tracked = arrivalTrackingByCarId.current.get(entry.carId);
+        if (tracked && tracked.stationId !== entry.stationId) {
+          // bounce stays 0 on this exact frame -- bounceEnvelope(0) is 0 by
+          // construction (the envelope starts at 0 and ramps up), so the
+          // squash actually appears starting next frame once elapsedTime
+          // has moved past this new arrivalTime.
+          arrivalTrackingByCarId.current.set(entry.carId, {
+            stationId: entry.stationId,
+            arrivalTime: elapsedTime,
+          });
+        } else if (!tracked) {
+          // First time this car is seen at all -- record it, but don't
+          // bounce: that would read as "arriving" on the very tick a car
+          // spawns onto the line, not a real station-to-station transition.
+          arrivalTrackingByCarId.current.set(entry.carId, {
+            stationId: entry.stationId,
+            arrivalTime: -Infinity,
+          });
+        } else {
+          bounce = bounceEnvelope(elapsedTime - tracked.arrivalTime);
+        }
       }
 
       current.lerp(target, Math.min(1, delta * LERP_SPEED));
@@ -75,13 +123,26 @@ export function Car3D({
       dummy.position.copy(current);
       const isSelected = entry?.carId === selectedCarId;
       const isFollowed = entry?.carId === followedCarId;
-      const scale = entry ? (isSelected || isFollowed ? 1.15 : 1) : 0.001;
-      dummy.scale.setScalar(scale);
+      const baseScale = entry ? (isSelected || isFollowed ? 1.15 : 1) : 0.001;
+      if (bounce > 0) {
+        // Squash on Y, bulge slightly on X/Z to compensate -- the classic
+        // "just landed" cue, decaying back to a uniform baseScale.
+        dummy.scale.set(baseScale * (1 + bounce * 0.5), baseScale * (1 - bounce), baseScale * (1 + bounce * 0.5));
+      } else {
+        dummy.scale.setScalar(baseScale);
+      }
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
       color.set(isFollowed ? PALETTE.beaconAmber : PALETTE.vellum);
       mesh.setColorAt(i, color);
+    }
+
+    // Prune cars that left the line entirely -- otherwise this map would
+    // grow for the life of the session, one entry per car that ever
+    // appeared (hundreds, over a full run).
+    for (const carId of arrivalTrackingByCarId.current.keys()) {
+      if (!seenCarIds.has(carId)) arrivalTrackingByCarId.current.delete(carId);
     }
 
     mesh.instanceMatrix.needsUpdate = true;

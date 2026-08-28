@@ -31,7 +31,7 @@ export function CarPanel() {
   if (!selectedCarId) return null;
 
   return (
-    <div style={panelStyle}>
+    <div className="panel-in" style={panelStyle}>
       <button onClick={() => void selectCar(null)} style={{ float: "right" }} aria-label="Close">
         ✕
       </button>

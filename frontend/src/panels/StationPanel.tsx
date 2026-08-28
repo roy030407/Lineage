@@ -32,7 +32,7 @@ export function StationPanel() {
   if (!station || !state) return null;
 
   return (
-    <div style={panelStyle}>
+    <div className="panel-in" style={panelStyle}>
       <button onClick={() => selectStation(null)} style={{ float: "right" }} aria-label="Close">
         ✕
       </button>

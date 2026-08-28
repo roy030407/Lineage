@@ -17,6 +17,7 @@ interface Props {
 export function HudPanel({ accentColor, children }: Props) {
   return (
     <div
+      className="panel-in"
       style={{
         background: "var(--color-hud-panel-deep)",
         border: `var(--border-width-chunky) solid ${accentColor ?? "var(--color-hud-accent)"}`,

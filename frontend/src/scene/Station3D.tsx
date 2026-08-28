@@ -136,6 +136,19 @@ interface Props {
   isSelected: boolean;
 }
 
+// Phase 7 "juice": a brief scale pop plays when a station is newly
+// selected, extending the existing emissive-pulse-on-select (isSelected's
+// `emissiveIntensity` bump below, unchanged) rather than replacing it --
+// colour and motion both confirm the click landed, not just one signal.
+const POP_DURATION_S = 0.3;
+const POP_AMPLITUDE = 0.12;
+
+function popEnvelope(elapsedS: number): number {
+  if (elapsedS < 0 || elapsedS >= POP_DURATION_S) return 0;
+  const t = elapsedS / POP_DURATION_S;
+  return POP_AMPLITUDE * Math.sin(t * Math.PI) * (1 - t);
+}
+
 export function Station3D({
   stationId,
   stationName,
@@ -148,6 +161,29 @@ export function Station3D({
 }: Props) {
   const selectStation = useLineageStore((s) => s.selectStation);
   const [hovered, setHovered] = useState(false);
+  const groupRef = useRef<THREE.Group>(null);
+  const wasSelectedRef = useRef(isSelected);
+  const popStartRef = useRef<number | null>(null);
+
+  useFrame(({ clock }) => {
+    if (isSelected && !wasSelectedRef.current) {
+      popStartRef.current = clock.elapsedTime;
+    }
+    wasSelectedRef.current = isSelected;
+
+    const group = groupRef.current;
+    if (!group) return;
+    let scale = 1;
+    if (popStartRef.current !== null) {
+      const elapsed = clock.elapsedTime - popStartRef.current;
+      if (elapsed < POP_DURATION_S) {
+        scale = 1 + popEnvelope(elapsed);
+      } else {
+        popStartRef.current = null;
+      }
+    }
+    group.scale.setScalar(scale);
+  });
 
   const sensorToken = SENSOR_HEALTH_TOKENS[sensorHealth];
   const machineToken = MACHINE_HEALTH_TOKENS[machineHealth];
@@ -156,6 +192,7 @@ export function Station3D({
 
   return (
     <group
+      ref={groupRef}
       position={[x, BLOCK_SIZE[1] / 2, z]}
       userData={{ lineageKind: "station", stationId }}
     >

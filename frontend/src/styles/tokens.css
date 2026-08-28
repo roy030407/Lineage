@@ -57,6 +57,39 @@ button:focus-visible,
   outline-offset: 2px;
 }
 
+/* Phase 7 "juice": every button gets the same press/hover feedback, without
+   needing a shared class adopted at every call site -- plain <button>
+   elements are used directly throughout this app, so styling the bare
+   selector reaches all of them in one place. */
+button:not(:disabled) {
+  transition: transform 80ms ease, filter 80ms ease;
+}
+button:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* Panel fade-slide-in on mount (HudPanel and the Mirror's click-to-view
+   panels) -- a conditionally-rendered panel appearing should read as
+   "opening", not just popping into existence. Runs once per mount, no JS
+   state needed. */
+@keyframes lineage-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-in {
+  animation: lineage-panel-in 160ms ease-out;
+}
+
 /* "Simulate" button's in-progress state: a fresh run genuinely takes ~11s
    to generate, so this needs to read as "working," not "stuck." */
 @keyframes lineage-pulse {
