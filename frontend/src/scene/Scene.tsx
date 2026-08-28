@@ -2,6 +2,7 @@
 
 import { ContactShadows, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import type { ElementRef } from "react";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
@@ -139,6 +140,24 @@ export function Scene() {
         <directionalLight position={[-70, 50, -50]} intensity={0.35} color="#a9c6e0" />
         <Line3D />
         <ContactShadows position={[0, -0.02, 0]} opacity={0.45} blur={2.2} far={40} scale={300} />
+        {/* Selective by luminance threshold, not per-object layers: nothing
+            hardcodes the station count, so there's no fixed list of lamp/
+            beam meshes to register with a selection API -- thresholding
+            gets the same practical result (only the bright emissive
+            lamps/beams bloom) without that plumbing. mipmapBlur keeps the
+            blur cheap at any resolution; luminanceThreshold/intensity were
+            tuned by screenshot against a real 42-station line specifically
+            so the diamond/hexagon/torus lamp shapes stay legible, not
+            blurred into indistinct blobs -- the status vocabulary depends
+            on their silhouettes, per styles/tokens.ts. */}
+        <EffectComposer>
+          <Bloom
+            mipmapBlur
+            luminanceThreshold={0.65}
+            luminanceSmoothing={0.15}
+            intensity={0.55}
+          />
+        </EffectComposer>
         <OrbitControls ref={controlsRef} makeDefault minDistance={5} maxDistance={2000} maxPolarAngle={Math.PI / 2.05} />
         <InitialFraming controlsRef={controlsRef} />
         <CameraRig controlsRef={controlsRef} />
