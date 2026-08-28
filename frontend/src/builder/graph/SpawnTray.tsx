@@ -3,7 +3,11 @@
 // to match reality, see that file's Builder layout section). Each tile is a
 // native HTML5 drag source; BuilderCanvas reads the template back out of
 // dataTransfer on drop and resolves where it landed via findDropTarget.
+// Phase 6 of the gamified rebuild: the tray reads as a tycoon-game "build
+// palette" now -- chunky bordered tiles with a hover lift, same HudPanel
+// chrome as everything else, instead of a flat unstyled div.
 
+import { HudPanel } from "../../components/HudPanel";
 import type { AcquisitionMode, Zone } from "../../state/types";
 import { ZONE_TOKENS } from "../../styles/tokens";
 
@@ -24,52 +28,47 @@ const TEMPLATES: StationTemplate[] = [
 
 export function SpawnTray() {
   return (
-    <div
-      style={{
-        position: "absolute",
-        right: "var(--space-4)",
-        bottom: "var(--space-4)",
-        zIndex: 5,
-        background: "var(--color-cast-steel)",
-        border: "1px solid var(--color-steel-neutral)",
-        borderRadius: 4,
-        padding: "var(--space-3)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-2)",
-      }}
-    >
-      <p className="eyebrow" style={{ margin: 0 }}>
-        Spawn tray
-      </p>
-      <div style={{ display: "flex", gap: "var(--space-2)" }}>
-        {TEMPLATES.map((template) => (
-          <div
-            key={template.label}
-            draggable
-            onDragStart={(event) => {
-              event.dataTransfer.setData(STATION_TEMPLATE_MIME, JSON.stringify(template));
-              event.dataTransfer.effectAllowed = "copy";
-            }}
-            style={{
-              cursor: "grab",
-              padding: "var(--space-2)",
-              minWidth: 90,
-              textAlign: "center",
-              background: "var(--color-foundry)",
-              border: `1px solid ${template.zoneDefault ? ZONE_TOKENS[template.zoneDefault].color : "var(--color-steel-neutral)"}`,
-              borderRadius: 4,
-              color: "var(--color-vellum)",
-              fontSize: "0.85rem",
-            }}
-          >
-            {template.label}
+    <div style={{ position: "absolute", right: "var(--space-4)", bottom: "var(--space-4)", zIndex: 5 }}>
+      <HudPanel>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            Spawn tray
+          </p>
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            {TEMPLATES.map((template) => (
+              <div
+                key={template.label}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(STATION_TEMPLATE_MIME, JSON.stringify(template));
+                  event.dataTransfer.effectAllowed = "copy";
+                }}
+                className="spawn-tile"
+                style={{
+                  cursor: "grab",
+                  padding: "var(--space-2)",
+                  minWidth: 90,
+                  textAlign: "center",
+                  background: "var(--color-foundry)",
+                  border: `var(--border-width-chunky) solid ${
+                    template.zoneDefault ? ZONE_TOKENS[template.zoneDefault].color : "var(--color-hud-accent)"
+                  }`,
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--color-vellum)",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  transition: "transform 120ms ease, box-shadow 120ms ease",
+                }}
+              >
+                {template.label}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <p className="eyebrow" style={{ margin: 0, maxWidth: 280 }}>
-        Drag onto a link to insert, or onto either end to append
-      </p>
+          <p className="eyebrow" style={{ margin: 0, maxWidth: 280 }}>
+            Drag onto a link to insert, or onto either end to append
+          </p>
+        </div>
+      </HudPanel>
     </div>
   );
 }

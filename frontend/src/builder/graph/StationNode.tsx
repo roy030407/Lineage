@@ -22,7 +22,19 @@ export interface StationNodeData {
   [key: string]: unknown;
 }
 
-function StationNodeComponent({ data }: { data: StationNodeData }) {
+// Zone identity was a 6px side stripe; promoted to a full-width header band
+// per Phase 6 of the gamified rebuild -- a tycoon-game "building tile" reads
+// its category from a coloured header bar, not a thin accent line. Chunky
+// border/radius/shadow tokens (Phase 5's HudPanel system) replace the flat
+// 1px/4px card. Selection now shows as an accent-coloured border instead of
+// nothing, since React Flow already tracks `selected` for every node type.
+function StationNodeComponent({
+  data,
+  selected,
+}: {
+  data: StationNodeData;
+  selected?: boolean;
+}) {
   const { station, isFirst, isLast } = data;
   const zoneToken = ZONE_TOKENS[station.zone];
 
@@ -32,19 +44,35 @@ function StationNodeComponent({ data }: { data: StationNodeData }) {
         width: NODE_WIDTH,
         minHeight: NODE_HEIGHT,
         display: "flex",
-        background: "var(--color-cast-steel)",
-        border: "1px solid var(--color-steel-neutral)",
-        borderRadius: 4,
+        flexDirection: "column",
+        background: "var(--color-hud-panel-deep)",
+        border: `var(--border-width-chunky) solid ${
+          selected ? "var(--color-hud-accent)" : "var(--color-steel-neutral)"
+        }`,
+        borderRadius: "var(--radius-md)",
+        boxShadow: "var(--shadow-panel)",
         color: "var(--color-vellum)",
         overflow: "hidden",
       }}
     >
-      <div style={{ width: 6, background: zoneToken.color, flexShrink: 0 }} aria-hidden="true" />
+      <div
+        style={{
+          background: zoneToken.color,
+          padding: "var(--space-1) var(--space-2)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+        }}
+      >
+        <span className="eyebrow" style={{ margin: 0, color: "var(--color-foundry)" }}>
+          {zoneToken.label}
+        </span>
+        <span className="data" style={{ color: "var(--color-foundry)", fontWeight: 700 }}>
+          {station.id}
+        </span>
+      </div>
       <div style={{ padding: "var(--space-2) var(--space-3)", flex: 1, minWidth: 0 }}>
-        <p className="eyebrow" style={{ margin: 0 }}>
-          {zoneToken.label} · {station.id}
-        </p>
-        <p style={{ margin: "2px 0", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <p style={{ margin: "0 0 2px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {station.name}
         </p>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -65,7 +93,7 @@ function StationNodeComponent({ data }: { data: StationNodeData }) {
           type="target"
           position={Position.Left}
           id="in"
-          style={{ background: "var(--color-steel-neutral)" }}
+          style={{ background: "var(--color-hud-accent)" }}
         />
       )}
       {!isLast && (
@@ -73,7 +101,7 @@ function StationNodeComponent({ data }: { data: StationNodeData }) {
           type="source"
           position={Position.Right}
           id="out"
-          style={{ background: "var(--color-steel-neutral)" }}
+          style={{ background: "var(--color-hud-accent)" }}
         />
       )}
     </div>

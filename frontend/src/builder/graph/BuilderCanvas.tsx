@@ -5,7 +5,7 @@
 // edit sensors/distance/baseline. Mirror stays view-only -- this is a wholly
 // separate canvas, only ever mounted while builderOpen is true.
 
-import type { Connection, Edge, Node, NodeTypes } from "@xyflow/react";
+import type { Connection, Edge, EdgeTypes, Node, NodeTypes } from "@xyflow/react";
 import {
   Background,
   Controls,
@@ -16,6 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { HudPanel } from "../../components/HudPanel";
 import {
   activateBuilderDraft,
   getBuilderDraft,
@@ -27,6 +28,7 @@ import {
 import { useLineageStore } from "../../state/store";
 import type { LineSpec, StationSpec } from "../../state/types";
 import { findDropTarget, positionsFor, type DropTarget } from "./canvasLayout";
+import { ConveyorEdge } from "./ConveyorEdge";
 import { EnvironmentEnvelopeEditor } from "./EnvironmentEnvelopeEditor";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { STATION_TEMPLATE_MIME, SpawnTray, type StationTemplate } from "./SpawnTray";
@@ -34,6 +36,7 @@ import { StationCreateModal } from "./StationCreateModal";
 import { StationNode, type StationNodeData } from "./StationNode";
 
 const NODE_TYPES: NodeTypes = { station: StationNode };
+const EDGE_TYPES: EdgeTypes = { conveyor: ConveyorEdge };
 
 function buildNodesAndEdges(line: LineSpec): { nodes: Node<StationNodeData>[]; edges: Edge[] } {
   const positions = positionsFor(line.stations);
@@ -58,8 +61,9 @@ function buildNodesAndEdges(line: LineSpec): { nodes: Node<StationNodeData>[]; e
       target: to.id,
       sourceHandle: "out",
       targetHandle: "in",
+      type: "conveyor",
       label: segment ? `${segment.distance_m.toFixed(1)}m` : "",
-      style: { stroke: "var(--color-steel-neutral)" },
+      style: { stroke: "var(--color-hud-accent)" },
     });
   }
   return { nodes, edges };
@@ -207,6 +211,7 @@ function BuilderCanvasInner() {
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
         onNodeClick={(_, node) => setSelectedStationId(node.id)}
         onPaneClick={() => setSelectedStationId(null)}
         onEdgeClick={(_, edge) => void handleCutLink(edge)}
@@ -224,7 +229,7 @@ function BuilderCanvasInner() {
         minZoom={0.08}
         proOptions={{ hideAttribution: true }}
       >
-        <Background gap={24} color="var(--color-steel-neutral)" />
+        <Background gap={28} size={1.5} color="var(--color-steel-neutral)" />
         <Controls />
       </ReactFlow>
 
@@ -236,28 +241,25 @@ function BuilderCanvasInner() {
           top: "var(--space-4)",
           right: "var(--space-4)",
           zIndex: 5,
-          background: "var(--color-cast-steel)",
-          border: "1px solid var(--color-steel-neutral)",
-          borderRadius: 4,
-          padding: "var(--space-3)",
-          color: "var(--color-vellum)",
-          display: selectedStation ? "none" : "flex",
-          flexDirection: "column",
-          gap: "var(--space-2)",
+          display: selectedStation ? "none" : "block",
         }}
       >
-        <p className="eyebrow" style={{ margin: 0 }}>
-          {draft.plant_name}
-        </p>
-        <input
-          value={filename}
-          onChange={(e) => setFilename(e.target.value)}
-          placeholder="my_new_line.yaml"
-        />
-        <button onClick={() => void handleSave()}>Save &amp; activate</button>
-        <button onClick={() => setBuilderOpen(false)}>Close Builder</button>
-        {saveResult && <p className="data">{saveResult}</p>}
-        {actionError && <p style={{ color: "var(--color-beacon-red)" }}>{actionError}</p>}
+        <HudPanel>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", minWidth: 200 }}>
+            <p className="eyebrow" style={{ margin: 0 }}>
+              {draft.plant_name}
+            </p>
+            <input
+              value={filename}
+              onChange={(e) => setFilename(e.target.value)}
+              placeholder="my_new_line.yaml"
+            />
+            <button onClick={() => void handleSave()}>Save &amp; activate</button>
+            <button onClick={() => setBuilderOpen(false)}>Close Builder</button>
+            {saveResult && <p className="data">{saveResult}</p>}
+            {actionError && <p style={{ color: "var(--color-beacon-red)" }}>{actionError}</p>}
+          </div>
+        </HudPanel>
       </div>
 
       {selectedStation && (

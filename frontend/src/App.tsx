@@ -1,5 +1,10 @@
 // Root component: loads the line spec, connects the live WS stream, and
-// renders the top bar + 3D Mirror + whichever side panel is active.
+// renders either the normal top bar + role-view shell, or the Builder
+// canvas as its own separate full-screen mode. Builder used to share the
+// same header as the role controls (Play/Pause/role-select/Simulate); Phase
+// 6 of the gamified rebuild pulled it out into its own entry point instead
+// -- BuilderEnterButton below, and BuilderCanvas.tsx's own "Close Builder"
+// button to come back, neither of which shares TopBar's control bar.
 
 import { useEffect } from "react";
 
@@ -16,6 +21,30 @@ import { OperatorView } from "./views/OperatorView";
 import { PlantManagerView } from "./views/PlantManagerView";
 import { PredictionLedgerView } from "./views/PredictionLedgerView";
 
+function BuilderEnterButton() {
+  const setBuilderOpen = useLineageStore((s) => s.setBuilderOpen);
+  return (
+    <button
+      onClick={() => setBuilderOpen(true)}
+      style={{
+        position: "absolute",
+        bottom: "var(--space-4)",
+        left: "var(--space-4)",
+        zIndex: 5,
+        background: "var(--color-hud-panel-deep)",
+        color: "var(--color-vellum)",
+        border: "var(--border-width-chunky) solid var(--color-hud-accent)",
+        borderRadius: "var(--radius-md)",
+        boxShadow: "var(--shadow-panel)",
+        padding: "var(--space-2) var(--space-4)",
+        fontWeight: 600,
+      }}
+    >
+      Open Builder
+    </button>
+  );
+}
+
 export default function App() {
   const loadLineSpec = useLineageStore((s) => s.loadLineSpec);
   const role = useLineageStore((s) => s.role);
@@ -27,28 +56,29 @@ export default function App() {
     return disconnect;
   }, [loadLineSpec]);
 
+  if (builderOpen) {
+    // No TopBar here at all -- Builder is a wholly separate mode, not a
+    // panel swapped in under the same role/replay control bar.
+    return <BuilderCanvas />;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <TopBar />
       <div style={{ position: "relative", flex: 1, minHeight: 0, overflowY: "auto" }}>
-        {builderOpen ? (
-          <BuilderCanvas />
-        ) : (
+        {role === "mirror" && (
           <>
-            {role === "mirror" && (
-              <>
-                <Scene />
-                <StationPanel />
-                <CarPanel />
-              </>
-            )}
-            {role === "operator" && <OperatorView />}
-            {role === "floor_supervisor" && <FloorSupervisorView />}
-            {role === "plant_manager" && <PlantManagerView />}
-            {role === "leadership" && <LeadershipView />}
-            {role === "prediction_ledger" && <PredictionLedgerView />}
+            <Scene />
+            <StationPanel />
+            <CarPanel />
           </>
         )}
+        {role === "operator" && <OperatorView />}
+        {role === "floor_supervisor" && <FloorSupervisorView />}
+        {role === "plant_manager" && <PlantManagerView />}
+        {role === "leadership" && <LeadershipView />}
+        {role === "prediction_ledger" && <PredictionLedgerView />}
+        <BuilderEnterButton />
       </div>
     </div>
   );

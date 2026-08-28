@@ -151,9 +151,10 @@ export function StationCreateModal({ target, template, existingStationIds, onCan
       <form
         onSubmit={(e) => void handleSubmit(e)}
         style={{
-          background: "var(--color-cast-steel)",
-          border: "1px solid var(--color-steel-neutral)",
-          borderRadius: 4,
+          background: "var(--color-hud-panel-deep)",
+          border: "var(--border-width-chunky) solid var(--color-hud-accent)",
+          borderRadius: "var(--radius-chunky)",
+          boxShadow: "var(--shadow-panel)",
           padding: "var(--space-6)",
           display: "flex",
           flexDirection: "column",

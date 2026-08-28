@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 
+import { HudPanel } from "../../components/HudPanel";
 import {
   removeBuilderStation,
   updateBuilderSegmentDistance,
@@ -125,6 +126,7 @@ export function PropertiesPanel({ station, line, onUpdated, onClose }: Props) {
   }
 
   return (
+    <>
     <div
       style={{
         position: "absolute",
@@ -135,14 +137,10 @@ export function PropertiesPanel({ station, line, onUpdated, onClose }: Props) {
         maxHeight: "60vh",
         width: "var(--width-side-panel)",
         overflowY: "auto",
-        background: "var(--color-cast-steel)",
-        border: "1px solid var(--color-steel-neutral)",
-        borderRadius: 4,
-        padding: "var(--space-4)",
         zIndex: 10,
-        color: "var(--color-vellum)",
       }}
     >
+      <HudPanel>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <p className="eyebrow" style={{ margin: 0 }}>
           {station.id} · {station.name}
@@ -256,7 +254,12 @@ export function PropertiesPanel({ station, line, onUpdated, onClose }: Props) {
       </p>
       {removeError && <p style={{ color: "var(--color-beacon-red)" }}>{removeError}</p>}
       <button onClick={() => void handleRemove()}>Remove station</button>
+      </HudPanel>
+    </div>
 
+      {/* Rendered as a sibling, not nested inside the panel above -- it's a
+          full-screen modal overlay (its own position:absolute, inset:0),
+          which the panel's bounded/scrollable box would otherwise clip. */}
       {wizardOpen && (
         <CommissioningWizard
           station={station}
@@ -267,6 +270,6 @@ export function PropertiesPanel({ station, line, onUpdated, onClose }: Props) {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -97,9 +97,10 @@ export function CommissioningWizard({ station, onClose, onSaved }: Props) {
     >
       <div
         style={{
-          background: "var(--color-cast-steel)",
-          border: "1px solid var(--color-steel-neutral)",
-          borderRadius: 4,
+          background: "var(--color-hud-panel-deep)",
+          border: "var(--border-width-chunky) solid var(--color-hud-accent)",
+          borderRadius: "var(--radius-chunky)",
+          boxShadow: "var(--shadow-panel)",
           padding: "var(--space-6)",
           width: 460,
           maxHeight: "80vh",

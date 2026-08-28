@@ -72,3 +72,10 @@ button:focus-visible,
 .pulse {
   animation: lineage-pulse 1.1s ease-in-out infinite;
 }
+
+/* Spawn tray tiles (SpawnTray.tsx): a small hover lift, the same "chunky
+   interactive tile" feedback tycoon-game build palettes use. */
+.spawn-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
