@@ -7,6 +7,7 @@ before every Playwright run, which primed away a four-link failure chain.
 """
 
 import threading
+import time
 
 from fastapi.testclient import TestClient
 
@@ -14,6 +15,8 @@ from lineage.api.app import DEFAULT_RUN_ID, create_app
 from lineage.api.deps import AppState, get_app_state, reset_app_state
 from lineage.datagen.models import RunConfig
 from lineage.datagen.run import generate_run
+from lineage.replay.models import LineState, PlaybackMode
+from lineage.replay.ws import ConnectionManager
 
 
 def _runs_root_with(tmp_path, line, run_id: str):
@@ -130,3 +133,54 @@ def test_autoload_is_skipped_when_the_default_run_is_absent(tmp_path, tiny_line)
         response = client.post("/api/replay/control", json={"action": "pause"})
 
     assert response.status_code == 409
+
+
+class _RecordingConnectionManager(ConnectionManager):
+    """Records what the background tick loop broadcasts.
+
+    Used instead of a real WebSocket because the failure being guarded
+    against is "nothing is ever sent", and a socket reader blocked forever
+    on receive_json wedges TestClient shutdown rather than failing. This
+    observes the loop's actual decision directly and cannot hang.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.sent: list[LineState] = []
+
+    async def broadcast(self, state: LineState) -> None:
+        self.sent.append(state)
+        await super().broadcast(state)
+
+
+def test_the_tick_loop_keeps_broadcasting_while_paused(tmp_path, tiny_line):
+    """The loop used to `continue` on PAUSED, broadcasting nothing at all.
+
+    Nothing else tells a connected client that playback stopped:
+    replay_control answers only the caller that posted it, and a stopped
+    clock produces no further ticks. So a client's playback_mode stayed
+    "playing" forever after a pause, its Play button never re-enabled, and
+    the replay could not be resumed from the UI. Verified against a live
+    backend before the fix: after draining the connect backlog, a paused
+    client received no further frames whatsoever.
+
+    Also asserts the clock does NOT advance while paused, so this can
+    never be "fixed" by simply resuming playback.
+    """
+    runs_root = _runs_root_with(tmp_path, tiny_line, DEFAULT_RUN_ID)
+    reset_app_state(
+        AppState(line=tiny_line, runs_root=runs_root, autoload_default_run=True)
+    )
+    recorder = _RecordingConnectionManager()
+    get_app_state().connection_manager = recorder
+
+    with TestClient(create_app()) as client:
+        assert client.post("/api/replay/control", json={"action": "pause"}).status_code == 200
+        recorder.sent.clear()
+        # The loop runs once per real second; this spans a few iterations.
+        time.sleep(3.0)
+        paused_frames = [f for f in recorder.sent if f.playback_mode == PlaybackMode.PAUSED]
+
+    assert paused_frames, "the tick loop broadcast nothing at all while paused"
+    timestamps = {f.timestamp for f in paused_frames}
+    assert len(timestamps) == 1, "a paused clock must not advance between broadcasts"

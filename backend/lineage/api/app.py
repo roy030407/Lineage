@@ -73,7 +73,20 @@ async def _tick_loop() -> None:
         state = get_app_state()
         if state.engine is None:
             continue
-        if state.engine.clock.mode == PlaybackMode.PAUSED:
+        if state.engine.clock.mode in (PlaybackMode.PAUSED, PlaybackMode.ENDED):
+            # Keep broadcasting, but do not advance. Nothing else ever tells
+            # a connected client that playback stopped: replay_control
+            # answers only the caller that posted it, and a stopped clock
+            # produces no further ticks. Without this a client's
+            # playback_mode stays "playing" forever after a pause, so its
+            # Play button never re-enables and the replay cannot be resumed
+            # from the UI at all -- the same dead end as the cold-start bug,
+            # reached by a different route.
+            #
+            # Deliberately not pushed to snapshot_history: one identical
+            # frame per second would fill the 50-deep ring and then be
+            # replayed in full to the next client that connects.
+            await state.connection_manager.broadcast(state.engine.current_state())
             continue
         line_state = state.engine.tick()
         state.snapshot_history.push(line_state)
