@@ -158,6 +158,7 @@ export function Line3D() {
             machineHealth={state?.machine_health ?? null}
             latestReadings={state?.latest_readings ?? []}
             isSelected={selectedStationId === station.id}
+            sequenceIndex={station.sequence_index}
           />
         );
       })}

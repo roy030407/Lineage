@@ -15,6 +15,11 @@ import { toonGradientMap } from "./toonGradient";
 const MAX_CARS = 80;
 const LERP_SPEED = 4; // higher = snappier catch-up to the target position
 const HIDDEN_POSITION = new THREE.Vector3(0, -1000, 0);
+// Reused across every instance within a frame instead of allocating a
+// fresh Vector3 per car per frame (up to 80 allocations every frame,
+// pure garbage-collector pressure). Safe to share: lerp() below reads
+// the target and writes only to `current`.
+const SCRATCH_TARGET = new THREE.Vector3();
 const CAR_SIZE: [number, number, number] = [1.4, 0.6, 0.8];
 const CAR_GAP_ABOVE_STATION = 0.1;
 // Sits on top of the station block, not inside it -- BLOCK_SIZE[1] is the
@@ -84,12 +89,12 @@ export function Car3D({
       const current =
         currentPositions.current.get(i) ?? HIDDEN_POSITION.clone();
 
-      let target = HIDDEN_POSITION;
+      let target: THREE.Vector3 = HIDDEN_POSITION;
       let bounce = 0;
       if (entry) {
         const coord = coordinatesByStation.get(entry.stationId);
         if (coord) {
-          target = new THREE.Vector3(coord.x_m, CAR_Y, coord.y_m);
+          target = SCRATCH_TARGET.set(coord.x_m, CAR_Y, coord.y_m);
         }
         carIdByInstance.current.set(i, entry.carId);
         seenCarIds.add(entry.carId);

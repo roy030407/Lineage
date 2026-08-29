@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { useLineageStore } from "../state/store";
 import { setTestScene } from "../testHooks";
 import { PALETTE } from "../styles/tokens";
+import { BOOT_CAMERA_S, bootElapsed, cameraApproachFactor } from "./bootReveal";
 import { Line3D } from "./Line3D";
 
 /** Frames the camera to the line's actual extent once, when the LineSpec
@@ -19,6 +20,10 @@ function InitialFraming({ controlsRef }: { controlsRef: React.RefObject<ElementR
   const lineSpec = useLineageStore((s) => s.lineSpec);
   const { camera } = useThree();
   const framed = useRef(false);
+  const flight = useRef<{ from: THREE.Vector3; to: THREE.Vector3; look: THREE.Vector3 } | null>(
+    null,
+  );
+  const userTookOver = useRef(false);
 
   useEffect(() => {
     if (!lineSpec || framed.current || !controlsRef.current) return;
@@ -50,11 +55,77 @@ function InitialFraming({ controlsRef }: { controlsRef: React.RefObject<ElementR
     const horizontalFovRad = 2 * Math.atan(Math.tan(verticalFovRad / 2) * perspective.aspect);
     const fitDistance = (extent / (2 * Math.tan(horizontalFovRad / 2))) * 1.4;
 
-    camera.position.set(centerX, fitDistance * 0.6, centerZ + fitDistance);
+    const to = new THREE.Vector3(centerX, fitDistance * 0.6, centerZ + fitDistance);
+    // Starts wider and higher, then closes in. The whole line is visible at
+    // t=0 even on a 42-station spec, and 2.2x fitDistance stays well inside
+    // the camera's far plane (5000; fitDistance for that line is ~330).
+    const from = new THREE.Vector3(centerX, fitDistance * 1.5, centerZ + fitDistance * 2.2);
+
+    camera.position.copy(from);
     controlsRef.current.target.set(centerX, 0, centerZ);
     controlsRef.current.update();
+    flight.current = { from, to, look: new THREE.Vector3(centerX, 0, centerZ) };
     framed.current = true;
   }, [lineSpec, camera, controlsRef]);
+
+  // The entrance must never fight the mouse. Any user input hands control
+  // back immediately and permanently, rather than the camera continuing to
+  // drag itself toward a target while someone is orbiting.
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const takeOver = () => {
+      userTookOver.current = true;
+    };
+    controls.addEventListener("start", takeOver);
+    return () => controls.removeEventListener("start", takeOver);
+  }, [controlsRef]);
+
+  useFrame(({ clock }) => {
+    const path = flight.current;
+    if (!path || userTookOver.current) return;
+    const factor = cameraApproachFactor(bootElapsed(clock.elapsedTime));
+    camera.position.lerpVectors(path.from, path.to, factor);
+    if (controlsRef.current) {
+      controlsRef.current.target.copy(path.look);
+      controlsRef.current.update();
+    }
+    // Released once arrived, so OrbitControls owns the camera from here on.
+    if (factor >= 1) flight.current = null;
+  });
+
+  return null;
+}
+
+/** A paused or ended line still has to look alive rather than like a
+ * screenshot. Deliberately tiny in amplitude: this is breathing, not
+ * motion that could be mistaken for the line actually running. */
+function AmbientDrift({
+  controlsRef,
+}: {
+  controlsRef: React.RefObject<ElementRef<typeof OrbitControls>>;
+}) {
+  const lastInput = useRef(0);
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const mark = () => {
+      lastInput.current = performance.now();
+    };
+    controls.addEventListener("start", mark);
+    return () => controls.removeEventListener("start", mark);
+  }, [controlsRef]);
+
+  useFrame(({ clock }) => {
+    const elapsed = bootElapsed(clock.elapsedTime);
+    // Only once the entrance has finished and the user has been idle, so it
+    // competes with neither the flight nor an active drag.
+    if (elapsed === null || elapsed < BOOT_CAMERA_S) return;
+    if (performance.now() - lastInput.current < 6000) return;
+    camera.position.y += Math.sin(clock.elapsedTime * 0.25) * 0.004;
+  });
 
   return null;
 }
@@ -160,6 +231,7 @@ export function Scene() {
         </EffectComposer>
         <OrbitControls ref={controlsRef} makeDefault minDistance={5} maxDistance={2000} maxPolarAngle={Math.PI / 2.05} />
         <InitialFraming controlsRef={controlsRef} />
+        <AmbientDrift controlsRef={controlsRef} />
         <CameraRig controlsRef={controlsRef} />
       </Canvas>
       <FollowIndicator />

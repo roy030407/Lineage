@@ -28,6 +28,12 @@ import {
   UNKNOWN_STATUS_TOKEN,
   type ShapeToken,
 } from "../styles/tokens";
+import {
+  STATION_RISE_M,
+  beginBootReveal,
+  bootElapsed,
+  stationRevealFactor,
+} from "./bootReveal";
 import { toonGradientMap } from "./toonGradient";
 
 // Exported so Car3D can position cars relative to the station's actual
@@ -69,15 +75,36 @@ function StatusLamp({
   position,
   color,
   shape,
+  phase,
 }: {
   position: [number, number, number];
   color: string;
   shape: ShapeToken;
+  phase: number;
 }) {
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  // Ambient life: a slow emissive breath so a paused or ended line still
+  // reads as alive rather than as a screenshot. Phase-offset per station
+  // so a whole line of lamps breathes as a wave instead of pulsing in
+  // unison, which would read as a system-wide alarm. The range straddles
+  // Scene.tsx's bloom luminanceThreshold rather than crossing far below
+  // it, so lamps do not visibly pop in and out of bloom.
+  useFrame(({ clock }) => {
+    if (materialRef.current) {
+      materialRef.current.emissiveIntensity = 0.9 + 0.18 * Math.sin(clock.elapsedTime * 1.2 + phase);
+    }
+  });
+
   return (
     <mesh position={position}>
       <ShapeGeometry shape={shape} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.9} />
+      <meshStandardMaterial
+        ref={materialRef}
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.9}
+      />
     </mesh>
   );
 }
@@ -138,6 +165,9 @@ interface Props {
   machineHealth: MachineHealth | null;
   latestReadings: LatestReading[];
   isSelected: boolean;
+  // Drives the staggered entrance so the reveal sweeps along the
+  // line. Comes from LineSpec, never from a render-order index.
+  sequenceIndex: number;
 }
 
 // Phase 7 "juice": a brief scale pop plays when a station is newly
@@ -162,6 +192,7 @@ export function Station3D({
   machineHealth,
   latestReadings,
   isSelected,
+  sequenceIndex,
 }: Props) {
   const selectStation = useLineageStore((s) => s.selectStation);
   const [hovered, setHovered] = useState(false);
@@ -186,7 +217,21 @@ export function Station3D({
         popStartRef.current = null;
       }
     }
-    group.scale.setScalar(scale);
+    // Entrance, composed with the selection pop above rather than
+    // owning a second transform node: both are just a scale on this
+    // group, so multiplying them keeps one writer per property.
+    // beginBootReveal is idempotent, so every station calling it is
+    // fine and the first frame after mount defines t=0 for all of them.
+    beginBootReveal(clock.elapsedTime);
+    const reveal = stationRevealFactor(bootElapsed(clock.elapsedTime), sequenceIndex);
+
+    // Floored rather than allowed to reach 0: a zero scale collapses the
+    // matrix and makes the mesh unclickable for the frame it happens on.
+    group.scale.setScalar(Math.max(0.001, scale * reveal));
+    // Written directly rather than through the position prop: this
+    // changes every frame during the entrance, and prop-driven position
+    // would mean a React re-render per frame per station.
+    group.position.y = BLOCK_SIZE[1] / 2 - (1 - reveal) * STATION_RISE_M;
   });
 
   const sensorToken =
@@ -230,8 +275,18 @@ export function Station3D({
         <meshToonMaterial color={PALETTE.castSteel} gradientMap={toonGradientMap()} />
       </mesh>
 
-      <StatusLamp position={sensorLampPos} color={sensorToken.color} shape={sensorToken.shape} />
-      <StatusLamp position={machineLampPos} color={machineToken.color} shape={machineToken.shape} />
+      <StatusLamp
+        position={sensorLampPos}
+        color={sensorToken.color}
+        shape={sensorToken.shape}
+        phase={sequenceIndex * 0.4}
+      />
+      <StatusLamp
+        position={machineLampPos}
+        color={machineToken.color}
+        shape={machineToken.shape}
+        phase={sequenceIndex * 0.4}
+      />
 
       {sensorHealth === "red" && <SensorFaultBeam position={sensorLampPos} />}
       {machineHealth === "red" && <MachineFaultBeam position={machineLampPos} />}
