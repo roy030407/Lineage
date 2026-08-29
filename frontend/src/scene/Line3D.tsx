@@ -168,6 +168,9 @@ export function Line3D() {
         coordinatesByStation={coordinatesByStation}
         selectedCarId={selectedCarId}
         followedCarId={followedCarId}
+        // One car per station is the real ceiling; the previous
+        // hardcoded 80 silently dropped cars on any longer line.
+        maxCars={Math.max(1, lineSpec.stations.length)}
         onSelectCar={(carId) => {
           void selectCar(carId);
           followCar(carId);

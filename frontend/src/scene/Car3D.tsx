@@ -12,7 +12,6 @@ import { PALETTE } from "../styles/tokens";
 import { BLOCK_SIZE } from "./Station3D";
 import { toonGradientMap } from "./toonGradient";
 
-const MAX_CARS = 80;
 const LERP_SPEED = 4; // higher = snappier catch-up to the target position
 const HIDDEN_POSITION = new THREE.Vector3(0, -1000, 0);
 // Reused across every instance within a frame instead of allocating a
@@ -51,6 +50,11 @@ interface Props {
   coordinatesByStation: Map<string, StationCoordinate>;
   selectedCarId: string | null;
   followedCarId: string | null;
+  // Instance count for the pooled mesh. Derived from LineSpec by the
+  // caller, never a fixed literal: a hardcoded 80 silently dropped
+  // every car past that index on a longer line, which is exactly the
+  // kind of station-count assumption this project forbids.
+  maxCars: number;
   onSelectCar: (carId: string) => void;
 }
 
@@ -59,6 +63,7 @@ export function Car3D({
   coordinatesByStation,
   selectedCarId,
   followedCarId,
+  maxCars,
   onSelectCar,
 }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -84,7 +89,7 @@ export function Car3D({
     carIdByInstance.current.clear();
 
     const seenCarIds = new Set<string>();
-    for (let i = 0; i < MAX_CARS; i++) {
+    for (let i = 0; i < maxCars; i++) {
       const entry = activeCars[i];
       const current =
         currentPositions.current.get(i) ?? HIDDEN_POSITION.clone();
@@ -170,7 +175,7 @@ export function Car3D({
   return (
     <instancedMesh
       ref={meshRef}
-      args={[undefined, undefined, MAX_CARS]}
+      args={[undefined, undefined, maxCars]}
       userData={{ lineageKind: "car" }}
       // Three.js culls an InstancedMesh using a bounding sphere around the
       // *object's own* local origin, ignoring per-instance transforms --

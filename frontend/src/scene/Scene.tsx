@@ -165,7 +165,10 @@ function FollowIndicator() {
     <div
       style={{
         position: "absolute",
-        left: "var(--space-4)",
+        // Bottom-RIGHT: bottom-left is occupied by App.tsx's Open
+        // Builder button at the identical offset, and the two overlapped
+        // whenever a car was followed.
+        right: "var(--space-4)",
         bottom: "var(--space-4)",
         display: "flex",
         alignItems: "center",
