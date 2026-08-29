@@ -28,11 +28,30 @@ class AppState:
         runs_root: Path = RUNS_ROOT,
         lines_root: Path = LINES_ROOT,
         models_root: Path = MODELS_ROOT,
+        autoload_default_run: bool = False,
     ) -> None:
         self.line: LineSpec | None = line
         self.runs_root = runs_root
         self.lines_root = lines_root
         self.models_root = models_root
+        self.autoload_default_run = autoload_default_run
+        """Whether api/app.py's lifespan should load DEFAULT_RUN_ID at boot
+        so the Mirror opens on a live line instead of an empty canvas.
+
+        Defaults to False, and only get_app_state() below sets it True, so
+        this is opt-in for the shipped configuration alone. That default is
+        load-bearing: any state constructed directly (every test, every CLI
+        entry point) has substituted at least one of line/runs_root, and a
+        run is only ever valid against the line it was generated from.
+
+        An earlier attempt guarded on "does DEFAULT_RUN_ID exist under
+        state.runs_root" instead. That is the wrong question and it broke
+        26 tests: tests/unit/test_api_builder.py substitutes `line` but
+        leaves runs_root at the real RUNS_ROOT, which does contain the
+        committed 42-station default run, so the autoload tried to build a
+        genealogy store for 42 stations against a 3-station line and died
+        with KeyError: 'ST-04'. Existence of a run says nothing about
+        whether it matches the loaded line."""
         self.engine: ReplayEngine | None = None
         self.connection_manager = ConnectionManager()
         self.snapshot_history = SnapshotHistory()
@@ -118,7 +137,13 @@ global first (Redis or similar), not just raising a number."""
 def get_app_state() -> AppState:
     global _state
     if _state is None:
-        _state = AppState(line=LineSpec.from_yaml(DEFAULT_LINE_PATH))
+        # The only place autoload_default_run is ever True: this is the
+        # shipped configuration, the default line paired with the default
+        # runs root, which is exactly the pairing the default run is valid
+        # against.
+        _state = AppState(
+            line=LineSpec.from_yaml(DEFAULT_LINE_PATH), autoload_default_run=True
+        )
     return _state
 
 

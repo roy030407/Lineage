@@ -12,6 +12,7 @@ from lineage.api.routes.act import router as act_router
 from lineage.api.routes.builder import router as builder_router
 from lineage.api.routes.datagen import router as datagen_router
 from lineage.api.routes.line import router as line_router
+from lineage.api.routes.mirror import load_run_into_state
 from lineage.api.routes.mirror import router as mirror_router
 from lineage.api.routes.predict import router as predict_router
 from lineage.api.routes.views import router as views_router
@@ -40,6 +41,31 @@ def _ensure_default_run_exists() -> None:
     generate_run(line, config, RUNS_ROOT)
 
 
+def _autoload_default_run() -> None:
+    """Opens the Mirror on a live line rather than an empty canvas.
+
+    Gated on state.autoload_default_run, which only api/deps.py's
+    get_app_state() ever sets True. Any AppState built directly has
+    substituted the line, the runs root, or both, and a generated run is
+    only valid against the line it came from. See that flag's docstring for
+    the 26-test failure that established this.
+
+    The existence check behind the flag is defence in depth: a missing
+    default run must leave the engine unloaded, not raise inside lifespan
+    and take the whole app down at boot.
+
+    Reuses load_run_into_state verbatim; no second load path exists.
+    """
+    state = get_app_state()
+    if not state.autoload_default_run:
+        return
+    if state.line is None:
+        return
+    if not (state.runs_root / DEFAULT_RUN_ID).exists():
+        return
+    load_run_into_state(state, DEFAULT_RUN_ID)
+
+
 async def _tick_loop() -> None:
     while True:
         await asyncio.sleep(TICK_INTERVAL_REAL_S)
@@ -56,6 +82,7 @@ async def _tick_loop() -> None:
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     _ensure_default_run_exists()
+    _autoload_default_run()
     task = asyncio.create_task(_tick_loop())
     try:
         yield

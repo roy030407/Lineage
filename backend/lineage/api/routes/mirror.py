@@ -128,8 +128,16 @@ def get_car(car_id: str, state: AppState = Depends(get_app_state)) -> dict:
 @router.websocket("/ws/line")
 async def ws_line(websocket: WebSocket, state: AppState = Depends(get_app_state)) -> None:
     await state.connection_manager.connect(websocket)
-    for snapshot in state.snapshot_history.recent():
-        await websocket.send_json(snapshot.model_dump(mode="json"))
+    recent = state.snapshot_history.recent()
+    if recent:
+        for snapshot in recent:
+            await websocket.send_json(snapshot.model_dump(mode="json"))
+    elif state.engine is not None:
+        # A client connecting before the first tick used to receive nothing
+        # at all and sit on a null lineState for up to a full second, or
+        # forever if playback was paused or never started. An engine that
+        # exists can always describe the present, so say so immediately.
+        await websocket.send_json(state.engine.current_state().model_dump(mode="json"))
     try:
         while True:
             await websocket.receive_text()
