@@ -4,7 +4,7 @@ from datetime import datetime
 
 from lineage.config.specs import LineSpec
 from lineage.replay.clock import SimClock
-from lineage.replay.models import LineState, MachineHealth, StationState
+from lineage.replay.models import LineState, MachineHealth, PlaybackMode, StationState
 from lineage.replay.run_data import RunData
 
 
@@ -24,6 +24,12 @@ class ReplayEngine:
         self.clock.pause()
 
     def resume(self) -> None:
+        # Resuming an ENDED run restarts it rather than doing nothing: the
+        # clock is already parked at the last frame, so a plain resume would
+        # leave the Play button inert. Only ENDED rewinds; PAUSED resumes
+        # exactly where it was, which is the whole point of pausing.
+        if self.clock.mode == PlaybackMode.ENDED:
+            self.clock.seek(self.run_data.start_time)
         self.clock.resume()
 
     def set_step_mode(self) -> None:
@@ -42,6 +48,14 @@ class ReplayEngine:
 
     def tick(self) -> LineState:
         self.clock.auto_tick()
+        # Stop at the edge of the data instead of advancing into it. Past
+        # end_time every station reports no car and a stale sensor, which
+        # renders as a line-wide RED alarm that never happened. SimClock's
+        # auto_tick already no-ops for any mode that is not PLAYING, so
+        # setting ENDED is sufficient to halt the clock.
+        if self.clock.current_time >= self.run_data.end_time:
+            self.clock.seek(self.run_data.end_time)
+            self.clock.mode = PlaybackMode.ENDED
         return self.current_state()
 
     def current_state(self) -> LineState:

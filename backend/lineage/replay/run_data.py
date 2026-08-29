@@ -24,6 +24,15 @@ class RunData:
         self._events.sort_values("timestamp", inplace=True)
 
         self.start_time: datetime = self._telemetry.timestamp.min().to_pydatetime()
+        # The last moment this run has anything real to say. Past it, every
+        # per-station query below degrades to "no car, stale sensor", which
+        # ReplayEngine must not present as a live line-wide fault. Takes the
+        # max across both frames because a run's final car_exit event can
+        # land after its final telemetry row.
+        self.end_time: datetime = max(
+            self._telemetry.timestamp.max().to_pydatetime(),
+            self._events.timestamp.max().to_pydatetime(),
+        )
 
         # Every per-station query below used to filter the full, ever-growing
         # telemetry/events frame from scratch -- fine at the scale the

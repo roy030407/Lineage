@@ -39,6 +39,16 @@ class PlaybackMode(StrEnum):
     PLAYING = "playing"
     PAUSED = "paused"
     STEP = "step"
+    ENDED = "ended"
+    """The clock reached the last frame the run actually has data for.
+
+    Deliberately distinct from PAUSED. PAUSED is a user decision and can be
+    resumed in place; ENDED is a property of the data. Advancing past it
+    would report every station RED (its last reading is now stale) and
+    holding no car, which is a fabricated line-wide alarm rather than an
+    observation, and is exactly the kind of invented signal the rest of
+    this vocabulary refuses to emit. Resuming from ENDED restarts from the
+    run's start_time, since there is nothing left to resume into."""
 
 
 class LatestReading(BaseModel):

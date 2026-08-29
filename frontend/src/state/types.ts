@@ -107,7 +107,10 @@ export interface RunToLearnRequest {
 
 export type SensorHealth = "green" | "red" | "not_yet_reporting" | "not_applicable";
 export type MachineHealth = "green" | "red";
-export type PlaybackMode = "playing" | "paused" | "step";
+// "ended" means the replay clock reached the last frame the run has data
+// for. Distinct from "paused": paused is a user decision resumable in
+// place, ended is a property of the data. See backend PlaybackMode.
+export type PlaybackMode = "playing" | "paused" | "step" | "ended";
 
 // Not yet returned by any endpoint the frontend calls -- defined now so the
 // design tokens (styles/tokens.ts) can cover the full status vocabulary
