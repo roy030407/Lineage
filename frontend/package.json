@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:coldstart": "playwright test --config playwright.coldstart.config.ts",
     "preview": "vite preview",
     "test": "vitest run"
   },

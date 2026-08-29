@@ -8,6 +8,10 @@ import { defineConfig, devices } from "@playwright/test";
 // starts the frontend.
 export default defineConfig({
   testDir: "./e2e",
+  // cold-start.spec.ts belongs to playwright.coldstart.config.ts, which
+  // deliberately has no globalSetup. Running it here would prime the
+  // backend first and defeat the entire point of that suite.
+  testIgnore: /cold-start\.spec\.ts/,
   timeout: 30_000,
   fullyParallel: false, // tests share one backend-loaded run; racing them isn't safe
   workers: 1,
