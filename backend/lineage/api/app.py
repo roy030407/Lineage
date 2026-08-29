@@ -16,6 +16,7 @@ from lineage.api.routes.mirror import load_run_into_state
 from lineage.api.routes.mirror import router as mirror_router
 from lineage.api.routes.predict import router as predict_router
 from lineage.api.routes.views import router as views_router
+from lineage.api.security import api_key_middleware
 from lineage.config.loader import load_line_spec
 from lineage.datagen.cli import build_default_run_config
 from lineage.datagen.run import generate_run
@@ -110,6 +111,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Registered after CORS so it sits outside it. OPTIONS is exempt inside
+    # the middleware itself, so preflight still reaches CORSMiddleware, and
+    # allow_headers=["*"] above already admits X-Lineage-Key.
+    app.middleware("http")(api_key_middleware)
     app.include_router(line_router)
     app.include_router(mirror_router)
     app.include_router(views_router)

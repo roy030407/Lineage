@@ -36,3 +36,21 @@ services:
         # alongside production). The app falls back to
         # http://localhost:5173 (local dev only) if this is ever unset.
         sync: false
+      - key: LINEAGE_API_KEY
+        # sync: false for the same reason as ALLOWED_ORIGIN: Render prompts
+        # for it rather than storing a secret in this file.
+        #
+        # Leaving it unset is a deliberate, working configuration: the
+        # gate in api/security.py is inert without it, which is what local
+        # development and the whole test suite rely on. Setting it makes
+        # every write (builder edits, replay control, simulate, act
+        # approvals) and the ~105s prediction-ledger reads require an
+        # X-Lineage-Key header. Reads and the WebSocket stay public either
+        # way, so the Mirror still works for an anonymous viewer.
+        #
+        # Do NOT mirror this into a VITE_ variable on the frontend:
+        # anything compiled into that bundle is readable in devtools,
+        # which makes it obfuscation rather than a credential. The
+        # frontend prompts an operator for it and holds it in
+        # sessionStorage.
+        sync: false

@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from lineage.api.deps import AppState, get_app_state
 from lineage.api.routes.mirror import load_run_into_state
+from lineage.api.security import SIMULATE_SINGLE_FLIGHT
 from lineage.datagen.cli import build_run_config
 from lineage.datagen.run import generate_run
 
@@ -32,13 +33,22 @@ def simulate(state: AppState = Depends(get_app_state)) -> SimulateResponse:
     if state.line is None:
         raise HTTPException(status_code=404, detail="no line loaded")
 
-    run_id = f"simulated_{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}"
-    config = build_run_config(
-        state.line,
-        run_id=run_id,
-        random_seed=random.randint(1, 2**31 - 1),
-        sim_start_time=datetime.now(),
-    )
-    artifacts = generate_run(state.line, config, state.runs_root)
-    load_run_into_state(state, artifacts.run_id)
-    return SimulateResponse(run_id=artifacts.run_id, num_cars=artifacts.num_cars)
+    # ~11s of real CPU work on a deployment pinned to one worker. A second
+    # concurrent call is refused rather than queued; see api/security.py.
+    if not SIMULATE_SINGLE_FLIGHT.acquire():
+        raise HTTPException(
+            status_code=429, detail="a simulation is already running; try again shortly"
+        )
+    try:
+        run_id = f"simulated_{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}"
+        config = build_run_config(
+            state.line,
+            run_id=run_id,
+            random_seed=random.randint(1, 2**31 - 1),
+            sim_start_time=datetime.now(),
+        )
+        artifacts = generate_run(state.line, config, state.runs_root)
+        load_run_into_state(state, artifacts.run_id)
+        return SimulateResponse(run_id=artifacts.run_id, num_cars=artifacts.num_cars)
+    finally:
+        SIMULATE_SINGLE_FLIGHT.release()
