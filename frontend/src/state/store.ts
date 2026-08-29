@@ -17,8 +17,12 @@ interface LineageStore {
   builderOpen: boolean;
   simulating: boolean;
   simulateError: string | null;
+  lastError: string | null;
+  lineSpecStatus: "idle" | "loading" | "ready" | "error";
 
   loadLineSpec: () => Promise<void>;
+  retryLoadLineSpec: () => Promise<void>;
+  clearError: () => void;
   loadRuns: () => Promise<void>;
   applyLineState: (state: LineState) => void;
 
@@ -36,6 +40,15 @@ interface LineageStore {
   setSpeed: (multiplier: number) => Promise<void>;
 }
 
+/** Every action below is invoked as `void fn()` at its call site, so an
+ * unhandled rejection is the default failure mode without an explicit
+ * catch. Before this, only `simulate` had one: a failed getLine() left
+ * lineSpec null forever behind an empty canvas, with no message shown
+ * and no way to retry. */
+function message(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 export const useLineageStore = create<LineageStore>((set, get) => ({
   lineSpec: null,
   lineState: null,
@@ -50,15 +63,31 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   builderOpen: false,
   simulating: false,
   simulateError: null,
+  lastError: null,
+  lineSpecStatus: "idle",
 
   loadLineSpec: async () => {
-    const lineSpec = await getLine();
-    set({ lineSpec });
+    set({ lineSpecStatus: "loading", lastError: null });
+    try {
+      const lineSpec = await getLine();
+      set({ lineSpec, lineSpecStatus: "ready" });
+    } catch (err) {
+      set({ lineSpecStatus: "error", lastError: message(err) });
+    }
   },
 
+  retryLoadLineSpec: async () => {
+    await get().loadLineSpec();
+  },
+
+  clearError: () => set({ lastError: null }),
+
   loadRuns: async () => {
-    const runs = await listRuns();
-    set({ runs });
+    try {
+      set({ runs: await listRuns() });
+    } catch (err) {
+      set({ lastError: message(err) });
+    }
   },
 
   applyLineState: (state) => {
@@ -86,7 +115,11 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   setBuilderOpen: (open) => set({ builderOpen: open }),
 
   loadRun: async (runId) => {
-    await replayControl({ action: "load", run_id: runId });
+    try {
+      await replayControl({ action: "load", run_id: runId });
+    } catch (err) {
+      set({ lastError: message(err) });
+    }
   },
   simulate: async () => {
     set({ simulating: true, simulateError: null });
@@ -104,15 +137,31 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
     }
   },
   play: async () => {
-    await replayControl({ action: "play" });
+    try {
+      await replayControl({ action: "play" });
+    } catch (err) {
+      set({ lastError: message(err) });
+    }
   },
   pause: async () => {
-    await replayControl({ action: "pause" });
+    try {
+      await replayControl({ action: "pause" });
+    } catch (err) {
+      set({ lastError: message(err) });
+    }
   },
   step: async () => {
-    await replayControl({ action: "step" });
+    try {
+      await replayControl({ action: "step" });
+    } catch (err) {
+      set({ lastError: message(err) });
+    }
   },
   setSpeed: async (multiplier) => {
-    await replayControl({ action: "set_speed", speed_multiplier: multiplier });
+    try {
+      await replayControl({ action: "set_speed", speed_multiplier: multiplier });
+    } catch (err) {
+      set({ lastError: message(err) });
+    }
   },
 }));

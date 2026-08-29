@@ -8,6 +8,8 @@
 
 import { useEffect } from "react";
 
+import { ApiKeyPrompt } from "./components/ApiKeyPrompt";
+import { BootOverlay } from "./components/BootOverlay";
 import { BuilderCanvas } from "./builder/graph/BuilderCanvas";
 import { CarPanel } from "./panels/CarPanel";
 import { StationPanel } from "./panels/StationPanel";
@@ -79,6 +81,10 @@ export default function App() {
         {role === "leadership" && <LeadershipView />}
         {role === "prediction_ledger" && <PredictionLedgerView />}
         <BuilderEnterButton />
+        <ApiKeyPrompt />
+        {/* Last so it paints over everything while the spec loads or
+            after it fails. Renders nothing once the spec is ready. */}
+        <BootOverlay />
       </div>
     </div>
   );

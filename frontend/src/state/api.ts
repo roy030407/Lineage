@@ -26,6 +26,38 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
+// The operator's key, held in sessionStorage rather than compiled in.
+// A VITE_ variable would be readable in devtools, which makes it
+// obfuscation rather than a credential. Reads and the WebSocket are
+// public, so an operator only needs this to control playback, edit a
+// line, or approve an Act proposal. The backend gate is inert unless
+// LINEAGE_API_KEY is set, so this is normally never needed at all.
+const API_KEY_STORAGE = "lineage.apiKey";
+
+export function getApiKey(): string | null {
+  try {
+    return sessionStorage.getItem(API_KEY_STORAGE);
+  } catch {
+    // Some privacy modes throw on access rather than returning null.
+    return null;
+  }
+}
+
+export function setApiKey(key: string | null): void {
+  try {
+    if (key === null) sessionStorage.removeItem(API_KEY_STORAGE);
+    else sessionStorage.setItem(API_KEY_STORAGE, key);
+  } catch {
+    // Nothing useful to do here; the next write is simply rejected
+    // and the prompt reappears.
+  }
+}
+
+function writeHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const key = getApiKey();
+  return key === null ? extra : { ...extra, "X-Lineage-Key": key };
+}
+
 // A hung request (dropped connection, unresponsive proxy) used to wedge a
 // view's loading state forever, with nothing to recover from -- every GET
 // now carries a real timeout via AbortController. 30s covers every normal
@@ -53,7 +85,7 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
   const url = `${API_BASE}${path}`;
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders({ "Content-Type": "application/json" }),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
@@ -69,7 +101,7 @@ async function putJson<T>(path: string, body: unknown): Promise<T> {
   const url = `${API_BASE}${path}`;
   const response = await fetch(url, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -130,7 +162,7 @@ export function insertBuilderStation(
 export async function removeBuilderStation(stationId: string): Promise<LineSpec> {
   const response = await fetch(
     `${API_BASE}/api/builder/draft/stations/${encodeURIComponent(stationId)}`,
-    { method: "DELETE" },
+    { method: "DELETE", headers: writeHeaders() },
   );
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
@@ -216,7 +248,7 @@ export function assignIssue(
 export async function unassignIssue(issueId: string): Promise<Record<string, string>> {
   const response = await fetch(
     `${API_BASE}/api/floor_supervisor/assignments/${encodeURIComponent(issueId)}`,
-    { method: "DELETE" },
+    { method: "DELETE", headers: writeHeaders() },
   );
   if (!response.ok) {
     throw new Error(`unassign issue failed: ${response.status}`);
@@ -268,11 +300,18 @@ export function getPredictTrend(
 export async function replayControl(request: ReplayControlRequest): Promise<void> {
   const response = await fetch(`${API_BASE}/api/replay/control`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: writeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(request),
   });
   if (!response.ok) {
-    throw new Error(`replay control ${request.action} failed: ${response.status}`);
+    // Carries the server's own detail through: a bare status turned
+    // "no run loaded" and "missing key" into the same opaque number.
+    const detail = await response.json().catch(() => null);
+    throw new Error(
+      `replay control ${request.action} failed: ${response.status} ${
+        detail?.detail ?? response.statusText
+      }`,
+    );
   }
 }
 
