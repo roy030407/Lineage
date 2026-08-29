@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from pydantic import BaseModel
 
 from lineage.api.deps import AppState, get_app_state
+from lineage.api.paths import safe_child
 from lineage.datagen.models import RunConfig
 from lineage.replay.engine import ReplayEngine
 from lineage.replay.run_data import RunData
@@ -37,7 +38,12 @@ def load_run_into_state(state: AppState, run_id: str) -> None:
     which generates a fresh run and then needs this exact same load."""
     if state.line is None:
         raise HTTPException(status_code=404, detail="no line loaded")
-    run_dir = state.runs_root / run_id
+    # Unvalidated, this was an unauthenticated existence oracle for
+    # arbitrary filesystem paths via '..' segments. See api/paths.py.
+    try:
+        run_dir = safe_child(state.runs_root, run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail=f"unknown run {run_id!r}")
     run_config_path = run_dir / "run_config.json"

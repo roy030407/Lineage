@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from lineage.api.deps import AppState, get_app_state
+from lineage.api.paths import safe_child
 from lineage.config.commissioning import DEFAULT_SAMPLE_COUNT
 from lineage.config.commissioning import run_to_learn as _run_to_learn
 from lineage.config.specs import (
@@ -293,19 +294,20 @@ def save_draft(req: SaveDraftRequest, state: AppState = Depends(get_app_state)) 
     draft = _require_draft(state)
 
     filename = req.filename
-    if (
-        not filename.endswith(".yaml")
-        or "/" in filename
-        or "\\" in filename
-        or ".." in filename
-    ):
+    if not filename.endswith(".yaml"):
         raise HTTPException(
             status_code=400,
             detail="filename must be a plain '*.yaml' basename, no path separators",
         )
+    # The previous separator scan let 'C:evil.yaml' through: it holds no
+    # separator and no '..', yet the drive letter re-anchors the join and
+    # the file lands outside lines_root entirely. See api/paths.py.
+    try:
+        target = safe_child(state.lines_root, filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     state.lines_root.mkdir(parents=True, exist_ok=True)
-    target = state.lines_root / filename
     if target.exists():
         raise HTTPException(status_code=409, detail=f"{filename!r} already exists")
 
