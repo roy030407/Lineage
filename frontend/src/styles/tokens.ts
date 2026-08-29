@@ -116,6 +116,23 @@ export const MACHINE_HEALTH_TOKENS: Record<MachineHealth, StatusToken> = {
   red: { color: PALETTE.beaconRed, shape: "diamond", label: "Maintenance Overdue" },
 };
 
+// A station the LineSpec knows about but that no tick has described yet.
+// Not a fault and not healthy. The ring shape is already defined above as
+// "not applicable / unknown -- no meaningful signal at all", which is
+// exactly this situation.
+//
+// This exists rather than reusing SensorHealth.not_yet_reporting because
+// MachineHealth has no equivalent member: it is green or red and nothing
+// else. Rendering green would fabricate a safe value and rendering red
+// would fabricate a fault (and light a fault beam), so a shared token
+// covering both domains is the only honest option that does not widen
+// either enum.
+export const UNKNOWN_STATUS_TOKEN: StatusToken = {
+  color: PALETTE.steelNeutral,
+  shape: "ring",
+  label: "Awaiting Data",
+};
+
 export const SPC_STATE_TOKENS: Record<SPCState, StatusToken> = {
   in_control: { color: PALETTE.beaconGreen, shape: "circle", label: "In Control" },
   out_of_control: { color: PALETTE.beaconRed, shape: "diamond", label: "Out of Control" },

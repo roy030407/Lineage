@@ -25,6 +25,7 @@ import {
   MACHINE_HEALTH_TOKENS,
   PALETTE,
   SENSOR_HEALTH_TOKENS,
+  UNKNOWN_STATUS_TOKEN,
   type ShapeToken,
 } from "../styles/tokens";
 import { toonGradientMap } from "./toonGradient";
@@ -130,8 +131,11 @@ interface Props {
   stationName: string;
   x: number;
   z: number;
-  sensorHealth: SensorHealth;
-  machineHealth: MachineHealth;
+  // Null until the first tick describes this station. Rendering green
+  // would fabricate a safe value; rendering red would fabricate a fault
+  // and light a fault beam. Null gets its own no-signal token instead.
+  sensorHealth: SensorHealth | null;
+  machineHealth: MachineHealth | null;
   latestReadings: LatestReading[];
   isSelected: boolean;
 }
@@ -185,8 +189,10 @@ export function Station3D({
     group.scale.setScalar(scale);
   });
 
-  const sensorToken = SENSOR_HEALTH_TOKENS[sensorHealth];
-  const machineToken = MACHINE_HEALTH_TOKENS[machineHealth];
+  const sensorToken =
+    sensorHealth === null ? UNKNOWN_STATUS_TOKEN : SENSOR_HEALTH_TOKENS[sensorHealth];
+  const machineToken =
+    machineHealth === null ? UNKNOWN_STATUS_TOKEN : MACHINE_HEALTH_TOKENS[machineHealth];
   const sensorLampPos: [number, number, number] = [-LAMP_X_OFFSET, LAMP_LOCAL_Y, 0];
   const machineLampPos: [number, number, number] = [LAMP_X_OFFSET, LAMP_LOCAL_Y, 0];
 

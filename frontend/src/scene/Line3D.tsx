@@ -140,8 +140,13 @@ export function Line3D() {
 
       {lineSpec.stations.map((station) => {
         const coord = coordinatesByStation.get(station.id);
+        // Only the coordinate is genuinely required. Gating on `state` too
+        // meant a client that had not yet received a tick rendered zero
+        // stations and zero cars: the blank screen this change exists to
+        // kill. The line's geometry is knowable from the spec alone; its
+        // health is not, so that is what goes null below.
+        if (!coord) return null;
         const state = stationStateById.get(station.id);
-        if (!coord || !state) return null;
         return (
           <Station3D
             key={station.id}
@@ -149,9 +154,9 @@ export function Line3D() {
             stationName={station.name}
             x={coord.x_m}
             z={coord.y_m}
-            sensorHealth={state.sensor_health}
-            machineHealth={state.machine_health}
-            latestReadings={state.latest_readings}
+            sensorHealth={state?.sensor_health ?? null}
+            machineHealth={state?.machine_health ?? null}
+            latestReadings={state?.latest_readings ?? []}
             isSelected={selectedStationId === station.id}
           />
         );

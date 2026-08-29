@@ -35,7 +35,15 @@ export function TopBar() {
     void loadRuns();
   }, [loadRuns]);
 
-  const isPaused = lineState?.playback_mode === "paused";
+  // Derived from real state with an explicit no-state-yet branch. The
+  // old `lineState?.playback_mode === "paused"` evaluated
+  // `undefined === "paused"` as false before the first tick, which
+  // disabled Play and enabled Pause at exactly the moment Play was the
+  // only control that could help. That is a dead end, and it was the
+  // default state of the app.
+  const mode = lineState?.playback_mode ?? null;
+  const canPlay = mode !== "playing";
+  const canPause = mode === "playing";
 
   return (
     <div
@@ -99,10 +107,10 @@ export function TopBar() {
         </select>
       )}
 
-      <button onClick={() => void play()} disabled={!isPaused} aria-pressed={!isPaused}>
-        Play
+      <button onClick={() => void play()} disabled={!canPlay} aria-pressed={mode === "playing"}>
+        {mode === "ended" ? "Replay" : "Play"}
       </button>
-      <button onClick={() => void pause()} disabled={isPaused} aria-pressed={isPaused}>
+      <button onClick={() => void pause()} disabled={!canPause} aria-pressed={mode === "paused"}>
         Pause
       </button>
       <button onClick={() => void step()}>Step</button>
@@ -117,6 +125,14 @@ export function TopBar() {
           {speed}×
         </button>
       ))}
+
+      {/* The run has finite data; playback does not. Saying so beats
+          letting the line quietly sit still with no explanation. */}
+      {mode === "ended" && (
+        <span className="eyebrow" style={{ color: "var(--color-beacon-amber)" }}>
+          Run complete
+        </span>
+      )}
 
       {lineState && (
         <span className="data" style={{ marginLeft: "auto" }}>
