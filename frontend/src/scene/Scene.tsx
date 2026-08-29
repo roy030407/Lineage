@@ -130,6 +130,27 @@ function AmbientDrift({
   return null;
 }
 
+/** Reports that the scene has genuinely drawn a frame containing the
+ * line, which is what the boot overlay waits for. Deliberately not
+ * Canvas's onCreated: that fires when the renderer exists, well before
+ * Line3D has mounted a single station. */
+function SceneReadySignal() {
+  const lineSpec = useLineageStore((s) => s.lineSpec);
+  const markSceneReady = useLineageStore((s) => s.markSceneReady);
+  const frames = useRef(0);
+
+  useFrame(() => {
+    if (!lineSpec) return;
+    // Two frames, not one: the first frame after mount is where the
+    // reveal transforms are still at their t=0 values, so revealing the
+    // canvas then would show an empty stage anyway.
+    frames.current += 1;
+    if (frames.current >= 2) markSceneReady();
+  });
+
+  return null;
+}
+
 function CameraRig({ controlsRef }: { controlsRef: React.RefObject<ElementRef<typeof OrbitControls>> }) {
   const followedCarId = useLineageStore((s) => s.followedCarId);
   const lineState = useLineageStore((s) => s.lineState);
@@ -233,6 +254,7 @@ export function Scene() {
           />
         </EffectComposer>
         <OrbitControls ref={controlsRef} makeDefault minDistance={5} maxDistance={2000} maxPolarAngle={Math.PI / 2.05} />
+        <SceneReadySignal />
         <InitialFraming controlsRef={controlsRef} />
         <AmbientDrift controlsRef={controlsRef} />
         <CameraRig controlsRef={controlsRef} />

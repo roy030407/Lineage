@@ -19,10 +19,12 @@ interface LineageStore {
   simulateError: string | null;
   lastError: string | null;
   lineSpecStatus: "idle" | "loading" | "ready" | "error";
+  sceneReady: boolean;
 
   loadLineSpec: () => Promise<void>;
   retryLoadLineSpec: () => Promise<void>;
   clearError: () => void;
+  markSceneReady: () => void;
   loadRuns: () => Promise<void>;
   applyLineState: (state: LineState) => void;
 
@@ -65,6 +67,7 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   simulateError: null,
   lastError: null,
   lineSpecStatus: "idle",
+  sceneReady: false,
 
   loadLineSpec: async () => {
     set({ lineSpecStatus: "loading", lastError: null });
@@ -81,6 +84,16 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   },
 
   clearError: () => set({ lastError: null }),
+
+  /** Set once the 3D scene has actually drawn the line, which is a
+   * meaningfully later moment than the LineSpec arriving: mounting 42
+   * stations and compiling their shaders took ~2s more in practice,
+   * and the boot overlay used to clear at the earlier moment, leaving
+   * a black screen in between. Idempotent so the caller can fire it
+   * from a frame loop without guarding. */
+  markSceneReady: () => {
+    if (!get().sceneReady) set({ sceneReady: true });
+  },
 
   loadRuns: async () => {
     try {

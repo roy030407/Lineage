@@ -31,10 +31,15 @@ function Sweep() {
 
 export function BootOverlay() {
   const status = useLineageStore((s) => s.lineSpecStatus);
+  const sceneReady = useLineageStore((s) => s.sceneReady);
   const lastError = useLineageStore((s) => s.lastError);
   const retry = useLineageStore((s) => s.retryLoadLineSpec);
 
-  if (status === "ready") return null;
+  // Held until the scene has actually drawn, not merely until the spec
+  // arrived. Clearing on the spec alone left a black screen for the
+  // second-plus that mounting 42 stations and compiling their shaders
+  // takes, which is the very thing this overlay exists to prevent.
+  if (status === "ready" && sceneReady) return null;
 
   return (
     <div
@@ -75,7 +80,7 @@ export function BootOverlay() {
       ) : (
         <>
           <p className="eyebrow" style={{ marginTop: "var(--space-3)" }}>
-            Reading line specification
+            {status === "ready" ? "Building the line" : "Reading line specification"}
           </p>
           <Sweep />
         </>
