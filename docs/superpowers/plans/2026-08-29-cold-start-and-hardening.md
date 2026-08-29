@@ -45,29 +45,29 @@ All three run the real lifespan via `with TestClient(create_app())` and all thre
 ## File Structure
 
 **Backend, created:**
-- `backend/lineage/api/paths.py` — one responsibility: validating that a caller-supplied name resolves to a direct child of an intended root. Shared by the builder save handler and the replay run loader.
-- `backend/lineage/api/security.py` — one responsibility: the environment-gated API key check and the in-process rate limiter and single-flight lock.
-- `backend/tests/unit/test_api_boot.py` — boot auto-load and WebSocket first-frame behaviour.
-- `backend/tests/unit/test_api_paths.py` — path validation, including the Windows drive-relative escape.
-- `backend/tests/unit/test_api_security.py` — auth gating and denial-of-service guards.
-- `backend/tests/unit/test_replay_end_of_run.py` — clock clamping and `ENDED`.
+- `backend/lineage/api/paths.py` carries one responsibility: validating that a caller-supplied name resolves to a direct child of an intended root. Shared by the builder save handler and the replay run loader.
+- `backend/lineage/api/security.py` carries one responsibility: the environment-gated API key check and the in-process rate limiter and single-flight lock.
+- `backend/tests/unit/test_api_boot.py`: boot auto-load and WebSocket first-frame behaviour.
+- `backend/tests/unit/test_api_paths.py`: path validation, including the Windows drive-relative escape.
+- `backend/tests/unit/test_api_security.py`: auth gating and denial-of-service guards.
+- `backend/tests/unit/test_replay_end_of_run.py`: clock clamping and `ENDED`.
 
 **Backend, modified:**
-- `backend/tests/conftest.py` — currently a single docstring. Gains a `tiny_line` fixture so new test files do not each duplicate a 50-line `LineSpec` builder. There is no `tests/__init__.py`, so a conftest fixture is the only clean sharing mechanism.
-- `backend/lineage/api/app.py` — boot auto-load, auth middleware registration.
-- `backend/lineage/api/routes/mirror.py` — WebSocket first frame, `run_id` validation.
-- `backend/lineage/api/routes/builder.py` — filename validation delegated to `paths.py`.
-- `backend/lineage/api/routes/datagen.py` — single-flight guard.
-- `backend/lineage/replay/models.py` — `PlaybackMode.ENDED`.
-- `backend/lineage/replay/run_data.py` — `end_time`.
-- `backend/lineage/replay/engine.py` — clamp and mode transition.
+- `backend/tests/conftest.py`: currently a single docstring. Gains a `tiny_line` fixture so new test files do not each duplicate a 50-line `LineSpec` builder. There is no `tests/__init__.py`, so a conftest fixture is the only clean sharing mechanism.
+- `backend/lineage/api/app.py`: boot auto-load, auth middleware registration.
+- `backend/lineage/api/routes/mirror.py`: WebSocket first frame, `run_id` validation.
+- `backend/lineage/api/routes/builder.py`: filename validation delegated to `paths.py`.
+- `backend/lineage/api/routes/datagen.py`: single-flight guard.
+- `backend/lineage/replay/models.py`: `PlaybackMode.ENDED`.
+- `backend/lineage/replay/run_data.py`: `end_time`.
+- `backend/lineage/replay/engine.py`: clamp and mode transition.
 
 **Frontend, created:**
-- `frontend/src/scene/bootReveal.ts` — pure timing functions for the staggered reveal. Deliberately free of React and three.js so it is unit-testable under vitest with no browser.
+- `frontend/src/scene/bootReveal.ts`: pure timing functions for the staggered reveal. Deliberately free of React and three.js so it is unit-testable under vitest with no browser.
 - `frontend/src/scene/bootReveal.test.ts`
-- `frontend/src/components/BootOverlay.tsx` — the pre-`lineSpec` state and the error surface.
-- `frontend/src/components/ApiKeyPrompt.tsx` — operator key entry.
-- `frontend/playwright.coldstart.config.ts` — a second Playwright config with no `globalSetup`.
+- `frontend/src/components/BootOverlay.tsx`: the pre-`lineSpec` state and the error surface.
+- `frontend/src/components/ApiKeyPrompt.tsx`: operator key entry.
+- `frontend/playwright.coldstart.config.ts`: a second Playwright config with no `globalSetup`.
 - `frontend/e2e/cold-start.spec.ts`
 
 **Frontend, modified:**
