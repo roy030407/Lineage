@@ -61,6 +61,8 @@ def find_affected_cars(
 
     results = []
     for car_id in car_ids:
+        if car_id == flagged_car_id:
+            continue  # the flagged car is the query, not part of its own cohort
         visit = next(
             (v for v in store.car(car_id).visits if v.station_id == originating_station_id), None
         )

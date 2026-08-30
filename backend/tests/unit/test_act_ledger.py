@@ -49,3 +49,26 @@ def test_audit_record_is_an_immutable_snapshot_not_a_live_reference():
     proposal.status = "rejected"  # mutate the original after the fact
 
     assert record.proposal_snapshot.status != "rejected"
+
+
+def test_ledger_persists_records_to_jsonl_and_reloads_them(tmp_path):
+    """A path-backed ledger writes each record through as one JSON line and
+    a fresh instance over the same file starts with the full history --
+    the audit trail survives a process restart."""
+    log_path = tmp_path / "audit" / "audit_log.jsonl"
+
+    ledger = AuditLedger(log_path)
+    record = approve(make_proposal(), ApproverRole.FLOOR_SUPERVISOR, "sup-1", ledger)
+
+    lines = log_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+
+    reloaded = AuditLedger(log_path)
+    assert reloaded.all_records() == [record]
+    assert reloaded.latest_for("p1") == record
+
+
+def test_in_memory_ledger_writes_no_files():
+    ledger = AuditLedger()
+    approve(make_proposal(), ApproverRole.FLOOR_SUPERVISOR, "sup-1", ledger)
+    assert len(ledger.all_records()) == 1  # nothing to assert on disk: no path, no file

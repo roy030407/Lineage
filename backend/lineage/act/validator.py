@@ -1,4 +1,5 @@
-"""Validates an ActProposal against the safety envelope; rejects or clips out-of-bounds cases."""
+"""Validates an ActProposal against the safety envelope; rejects out-of-bounds
+cases outright -- never clips them into range."""
 
 from lineage.act.envelope import envelope_for
 from lineage.act.models import Proposal
@@ -43,13 +44,18 @@ def validate_proposal(proposal: Proposal, station: StationSpec) -> None:
             f"[{envelope.absolute_min}, {envelope.absolute_max}]"
         )
 
-    if proposal.current_value != 0:
-        relative_change = abs(
-            (proposal.proposed_value - proposal.current_value) / proposal.current_value
+    # A current value of exactly 0 would make a relative step undefined --
+    # measure against the envelope's absolute span in that case, so a jump
+    # from 0 is still step-checked rather than silently exempted.
+    step_base = (
+        abs(proposal.current_value)
+        if proposal.current_value != 0
+        else envelope.absolute_max - envelope.absolute_min
+    )
+    relative_change = abs(proposal.proposed_value - proposal.current_value) / step_base
+    if relative_change > envelope.max_single_step_change_pct:
+        raise ValueError(
+            f"proposed change to {proposal.parameter_name!r} is a "
+            f"{relative_change:.1%} step, exceeding the envelope's "
+            f"{envelope.max_single_step_change_pct:.1%} max single-step change"
         )
-        if relative_change > envelope.max_single_step_change_pct:
-            raise ValueError(
-                f"proposed change to {proposal.parameter_name!r} is a "
-                f"{relative_change:.1%} step, exceeding the envelope's "
-                f"{envelope.max_single_step_change_pct:.1%} max single-step change"
-            )

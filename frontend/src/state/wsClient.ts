@@ -28,13 +28,25 @@ export function connectLineWebSocket(): () => void {
   function connect() {
     socket = new WebSocket(lineWebSocketUrl());
 
+    socket.onopen = () => {
+      useLineageStore.getState().setWsConnected(true);
+    };
+
     socket.onmessage = (event) => {
-      const state = JSON.parse(event.data) as LineState;
+      let state: LineState;
+      try {
+        state = JSON.parse(event.data) as LineState;
+      } catch {
+        // One malformed frame shouldn't kill the whole stream -- drop it and
+        // let the next tick through.
+        return;
+      }
       useLineageStore.getState().applyLineState(state);
       recordTick();
     };
 
     socket.onclose = () => {
+      useLineageStore.getState().setWsConnected(false);
       if (!closedByCaller) {
         reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
       }

@@ -110,7 +110,7 @@ export function OperatorView() {
   const [stationId, setStationId] = useState<string | null>(null);
   const activeStationId = stationId ?? stations[0]?.id ?? null;
 
-  const view = useRolePoll(
+  const { data: view, error } = useRolePoll(
     () => (activeStationId ? getOperatorView(activeStationId) : Promise.resolve(null)),
     [activeStationId],
   );
@@ -139,9 +139,15 @@ export function OperatorView() {
         ))}
       </select>
 
+      {view && error && (
+        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
+          Backend unreachable — retrying… (showing last known state)
+        </p>
+      )}
+
       {!view ? (
         <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
-          Loading station state…
+          {error ? "Backend unreachable — retrying…" : "Loading station state…"}
         </p>
       ) : (
         <HudPanel>
