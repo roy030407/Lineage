@@ -75,7 +75,7 @@ function NoRunOverlay() {
           font: "var(--text-h2)",
         }}
       >
-        No run playing — pick a run from the top bar, or press Simulate
+        No run playing. Pick a run from the top bar, or press Simulate
       </p>
     </div>
   );
@@ -138,7 +138,7 @@ export default function App() {
             color: "var(--color-vellum)",
           }}
         >
-          <span>Backend unreachable — could not load the line. Retrying…</span>
+          <span>Backend unreachable: could not load the line. Retrying…</span>
           <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss">
             ✕
           </button>

@@ -29,7 +29,7 @@ import {
 } from "../styles/tokens";
 import { useRolePoll } from "./useRolePoll";
 
-const BACKEND_UNREACHABLE = "Backend unreachable — retrying…";
+const BACKEND_UNREACHABLE = "Backend unreachable, retrying…";
 
 function ErrorBanner() {
   return (

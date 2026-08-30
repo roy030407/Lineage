@@ -141,13 +141,13 @@ export function OperatorView() {
 
       {view && error && (
         <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
-          Backend unreachable — retrying… (showing last known state)
+          Backend unreachable, retrying… (showing last known state)
         </p>
       )}
 
       {!view ? (
         <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
-          {error ? "Backend unreachable — retrying…" : "Loading station state…"}
+          {error ? "Backend unreachable, retrying…" : "Loading station state…"}
         </p>
       ) : (
         <HudPanel>

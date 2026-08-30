@@ -41,7 +41,7 @@ function paybackRuns(
 
 function paybackLabel(runs: number | null, occurrences: number): string {
   if (occurrences === 0) return "no traced defects yet";
-  if (runs === null) return "—";
+  if (runs === null) return "not computable";
   return `pays back in ~${runs.toFixed(1)} run${runs.toFixed(1) === "1.0" ? "" : "s"}`;
 }
 
@@ -191,7 +191,7 @@ export function LeadershipView() {
           Retrofit payback
         </p>
         <p style={MUTED}>
-          Assumptions, adjust to your plant. Defect attribution here is suspected, not verified —
+          Assumptions, adjust to your plant. Defect attribution here is suspected, not verified:
           these stations are uninstrumented, which is the point of the retrofit.
         </p>
         <div style={{ display: "flex", gap: "var(--space-8)", marginBottom: "var(--space-2)" }}>
@@ -247,7 +247,7 @@ export function LeadershipView() {
           Phased rollout
         </p>
         <p className="eyebrow" style={{ marginBottom: 0 }}>
-          Phase 1 — defects already traced here (fastest payback first)
+          Phase 1: defects already traced here (fastest payback first)
         </p>
         {phase1.length === 0 ? (
           <p style={MUTED}>No candidates with traced defects this run.</p>
@@ -255,7 +255,7 @@ export function LeadershipView() {
           <ol style={{ marginTop: "var(--space-1)" }}>
             {phase1.map(({ candidate, runs }) => (
               <li key={candidate.station_id} className="data">
-                {candidate.station_id} — {candidate.recurring_defect_occurrences} traced defect
+                {candidate.station_id}: {candidate.recurring_defect_occurrences} traced defect
                 {candidate.recurring_defect_occurrences === 1 ? "" : "s"},{" "}
                 {paybackLabel(runs, candidate.recurring_defect_occurrences)}
               </li>
@@ -263,7 +263,7 @@ export function LeadershipView() {
           </ol>
         )}
         <p className="eyebrow" style={{ marginBottom: 0 }}>
-          Phase 2 — no traced defects yet (by economic weight)
+          Phase 2: no traced defects yet (by economic weight)
         </p>
         {phase2.length === 0 ? (
           <p style={MUTED}>Every candidate already has traced defects.</p>
@@ -271,7 +271,7 @@ export function LeadershipView() {
           <ol style={{ marginTop: "var(--space-1)" }}>
             {phase2.map(({ candidate }) => (
               <li key={candidate.station_id} className="data">
-                {candidate.station_id} — economic weight {candidate.economic_weight.toFixed(2)}
+                {candidate.station_id}: economic weight {candidate.economic_weight.toFixed(2)}
               </li>
             ))}
           </ol>

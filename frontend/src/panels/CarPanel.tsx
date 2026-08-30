@@ -44,7 +44,7 @@ function TraceSection({ carId }: { carId: string }) {
     } catch (err) {
       setTrace(null);
       if (err instanceof ApiError && err.status === 409) {
-        setError("No run loaded — load or simulate a run first.");
+        setError("No run loaded. Load or simulate a run first.");
       } else if (err instanceof ApiError && err.status === 404) {
         setError("This car is unknown to the loaded run.");
       } else {
@@ -77,7 +77,7 @@ function TraceSection({ carId }: { carId: string }) {
                 className="eyebrow hazard-hatch"
                 style={{ marginLeft: "var(--space-2)", padding: "0 var(--space-1)" }}
               >
-                unverifiable — manual station
+                unverifiable (manual station)
               </span>
             )}
           </p>
