@@ -19,6 +19,10 @@ DEFAULT_LINE_PATH = LINES_ROOT / "example_42.yaml"
 RUNS_ROOT = BACKEND_DIR / "data" / "runs"
 MODELS_ROOT = BACKEND_DIR / "data" / "models"
 DEFAULT_RISK_MODEL_DIR = MODELS_ROOT / "risk_v1"
+AUDIT_LOG_PATH = BACKEND_DIR / "data" / "audit" / "audit_log.jsonl"
+"""Only the real process-wide singleton (get_app_state) writes here --
+AppState defaults to an in-memory-only audit ledger so tests never touch
+the repo's data directory."""
 
 
 class AppState:
@@ -29,6 +33,7 @@ class AppState:
         lines_root: Path = LINES_ROOT,
         models_root: Path = MODELS_ROOT,
         autoload_default_run: bool = False,
+        audit_log_path: Path | None = None,
     ) -> None:
         self.line: LineSpec | None = line
         self.runs_root = runs_root
@@ -74,10 +79,10 @@ class AppState:
         work (observed: ~105s for a 400-car run), and 'load' is expected to
         stay fast, matching genealogy_store's much cheaper build. Reset to
         None on every new 'load' so a stale run's ledger is never served.
-        Also None whenever no trained risk model is found -- data/models/ is
-        gitignored (a locally-trained artifact, not committed), so a fresh
-        clone or CI environment legitimately has none. See
-        api/routes/predict.py."""
+        Also None whenever no trained risk model is found -- risk_v1 is
+        committed on purpose (training takes minutes, far too heavy for
+        boot), but a retrained or removed model dir is still a legitimate
+        state. See api/routes/predict.py."""
         self.prediction_ledger_lock = threading.Lock()
         """Guards the lazy build above. FastAPI runs sync `def` route
         handlers in a real OS thread pool, not as coroutines on one event
@@ -105,11 +110,19 @@ class AppState:
         work, not free) so approving one by id later in the same loaded run
         finds the same object, not a freshly regenerated uuid. Reset to None
         on every new 'load'. See api/routes/act.py."""
-        self.audit_ledger = AuditLedger()
+        self.audit_ledger = AuditLedger(audit_log_path)
         """Append-only record of every Act proposal decision. NOT reset on a
         new 'load' -- unlike the caches above, an audit trail of what was
         actually approved is exactly the kind of thing that should survive
-        switching runs, not be silently dropped."""
+        switching runs, not be silently dropped. The real singleton also
+        persists it to AUDIT_LOG_PATH as append-only JSONL, so it survives a
+        process restart too."""
+        self.act_setpoints: dict[tuple[str, str], float] = {}
+        """(station_id, parameter_name) -> last approved value, fed back into
+        act.proposals.propose so successive proposals move from the line's
+        actual (approved) operating point instead of restarting from the
+        nominal midpoint. Like the audit ledger, deliberately NOT reset on a
+        new 'load' -- an approved setpoint describes the line, not a run."""
         self.issue_assignments: dict[str, str] = {}
         """issue_id (a station_id or car_id from the Floor Supervisor alert
         queue) -> operator_id. A minimal, in-memory assignment record, not a
@@ -140,9 +153,12 @@ def get_app_state() -> AppState:
         # The only place autoload_default_run is ever True: this is the
         # shipped configuration, the default line paired with the default
         # runs root, which is exactly the pairing the default run is valid
-        # against.
+        # against. It is also the only place the audit ledger is pointed at
+        # the on-disk AUDIT_LOG_PATH, so tests keep their in-memory ledger.
         _state = AppState(
-            line=LineSpec.from_yaml(DEFAULT_LINE_PATH), autoload_default_run=True
+            line=LineSpec.from_yaml(DEFAULT_LINE_PATH),
+            autoload_default_run=True,
+            audit_log_path=AUDIT_LOG_PATH,
         )
     return _state
 

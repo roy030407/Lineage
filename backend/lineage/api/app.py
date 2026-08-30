@@ -1,6 +1,7 @@
 """FastAPI app factory."""
 
 import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -15,6 +16,7 @@ from lineage.api.routes.line import router as line_router
 from lineage.api.routes.mirror import load_run_into_state
 from lineage.api.routes.mirror import router as mirror_router
 from lineage.api.routes.predict import router as predict_router
+from lineage.api.routes.trace import router as trace_router
 from lineage.api.routes.views import router as views_router
 from lineage.api.security import api_key_middleware
 from lineage.config.loader import load_line_spec
@@ -70,27 +72,42 @@ def _autoload_default_run() -> None:
 async def _tick_loop() -> None:
     while True:
         await asyncio.sleep(TICK_INTERVAL_REAL_S)
-        state = get_app_state()
-        if state.engine is None:
-            continue
-        if state.engine.clock.mode in (PlaybackMode.PAUSED, PlaybackMode.ENDED):
-            # Keep broadcasting, but do not advance. Nothing else ever tells
-            # a connected client that playback stopped: replay_control
-            # answers only the caller that posted it, and a stopped clock
-            # produces no further ticks. Without this a client's
-            # playback_mode stays "playing" forever after a pause, so its
-            # Play button never re-enables and the replay cannot be resumed
-            # from the UI at all -- the same dead end as the cold-start bug,
-            # reached by a different route.
-            #
-            # Deliberately not pushed to snapshot_history: one identical
-            # frame per second would fill the 50-deep ring and then be
-            # replayed in full to the next client that connects.
-            await state.connection_manager.broadcast(state.engine.current_state())
-            continue
-        line_state = state.engine.tick()
-        state.snapshot_history.push(line_state)
-        await state.connection_manager.broadcast(line_state)
+        try:
+            state = get_app_state()
+            if state.engine is None:
+                continue
+            if state.engine.clock.mode in (PlaybackMode.PAUSED, PlaybackMode.ENDED):
+                # Keep broadcasting, but do not advance. Nothing else ever tells
+                # a connected client that playback stopped: replay_control
+                # answers only the caller that posted it, and a stopped clock
+                # produces no further ticks. Without this a client's
+                # playback_mode stays "playing" forever after a pause, so its
+                # Play button never re-enables and the replay cannot be resumed
+                # from the UI at all -- the same dead end as the cold-start bug,
+                # reached by a different route.
+                #
+                # Deliberately not pushed to snapshot_history: one identical
+                # frame per second would fill the 50-deep ring and then be
+                # replayed in full to the next client that connects.
+                #
+                # current_state() re-scans run data exactly like tick() does,
+                # so it gets the same worker thread for the same reason.
+                paused_state = await asyncio.to_thread(state.engine.current_state)
+                await state.connection_manager.broadcast(paused_state)
+                continue
+            # engine.tick() re-scans run data and measurably grows to
+            # seconds late in a run (see README's Known limitations) --
+            # run it in a worker thread so a slow tick never blocks the
+            # event loop that serves every request and WebSocket send.
+            line_state = await asyncio.to_thread(state.engine.tick)
+            state.snapshot_history.push(line_state)
+            await state.connection_manager.broadcast(line_state)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # One bad tick must never silently kill the loop -- that would
+            # freeze the live view for the rest of the process's life.
+            logging.getLogger(__name__).exception("tick loop iteration failed; continuing")
 
 
 @asynccontextmanager
@@ -133,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(views_router)
     app.include_router(builder_router)
     app.include_router(predict_router)
+    app.include_router(trace_router)
     app.include_router(act_router)
     app.include_router(datagen_router)
     return app

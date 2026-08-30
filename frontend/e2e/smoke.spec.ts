@@ -396,7 +396,17 @@ test.describe("Builder node-graph canvas (Task 8)", () => {
     const upstreamId = before.stations[0].id;
     const downstreamId = before.stations[1].id;
 
+    // Cutting a link now asks for confirmation (it removes the downstream
+    // station, not just the conveyor) -- accept the dialog so the cut
+    // actually proceeds.
+    page.on("dialog", (dialog) => void dialog.accept());
     await page.locator(`[data-testid="rf__edge-${upstreamId}->${downstreamId}"]`).click();
+
+    // The removal round-trips through the dialog and then the backend --
+    // poll the draft rather than racing the in-flight DELETE.
+    await expect
+      .poll(async () => (await currentDraft(page)).stations.length, { timeout: 10_000 })
+      .toBe(before.stations.length - 1);
 
     const after = await currentDraft(page);
     expect(after.stations.length).toBe(before.stations.length - 1);

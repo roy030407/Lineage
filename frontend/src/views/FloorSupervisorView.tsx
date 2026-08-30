@@ -5,18 +5,22 @@
 // MINIMUM_APPROVER_ROLE is floor_supervisor, so this is the first role that
 // can).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { ConfidenceMeter } from "../components/ConfidenceMeter";
 import { HudPanel } from "../components/HudPanel";
 import { StatusBadge } from "../components/StatusBadge";
 import {
   approveActProposal,
   assignIssue,
   getFloorSupervisorView,
+  getPredictMetricsByStation,
   listActProposals,
+  simulateActProposal,
   unassignIssue,
 } from "../state/api";
 import { Scene } from "../scene/Scene";
+import type { LedgerMetrics, ProposalSimulation } from "../state/types";
 import {
   MACHINE_HEALTH_TOKENS,
   RISK_LEVEL_TOKENS,
@@ -24,6 +28,19 @@ import {
   SPC_STATE_TOKENS,
 } from "../styles/tokens";
 import { useRolePoll } from "./useRolePoll";
+
+const BACKEND_UNREACHABLE = "Backend unreachable — retrying…";
+
+function ErrorBanner() {
+  return (
+    <p
+      className="hazard-hatch"
+      style={{ padding: "var(--space-2)", color: "var(--color-vellum)" }}
+    >
+      {BACKEND_UNREACHABLE}
+    </p>
+  );
+}
 
 function AssignControl({
   issueId,
@@ -83,11 +100,64 @@ function AssignControl({
   );
 }
 
+function formatSignedDelta(value: number): string {
+  const magnitude = Math.abs(value).toFixed(3);
+  return value < 0 ? `−${magnitude}` : `+${magnitude}`;
+}
+
+function SimulateControl({ proposalId }: { proposalId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<ProposalSimulation | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <span style={{ display: "inline-flex", gap: "var(--space-2)", alignItems: "center" }}>
+      <button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setError(null);
+          try {
+            setResult(await simulateActProposal(proposalId));
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "Simulating…" : "Simulate"}
+      </button>
+      {result && (
+        <span className="data">
+          predicted defect-rate delta {formatSignedDelta(result.predicted_defect_rate_delta)} (95%
+          CI {formatSignedDelta(result.ci_low)} … {formatSignedDelta(result.ci_high)})
+        </span>
+      )}
+      {error && (
+        <span className="data" style={{ color: "var(--color-beacon-red)" }}>
+          {error}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function ActProposalsPanel() {
-  const proposals = useRolePoll(listActProposals, []);
+  const { data: proposals, error } = useRolePoll(listActProposals, []);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
-  if (!proposals) return null;
+  if (!proposals) {
+    if (!error) return null;
+    return (
+      <HudPanel accentColor="var(--color-beacon-amber)">
+        <p className="eyebrow" style={{ margin: 0 }}>
+          Act proposals
+        </p>
+        <ErrorBanner />
+      </HudPanel>
+    );
+  }
   const pending = proposals.filter((p) => p.status === "pending");
 
   return (
@@ -110,19 +180,22 @@ function ActProposalsPanel() {
               {proposal.current_value.toFixed(2)} → {proposal.proposed_value.toFixed(2)}
             </p>
             <p>{proposal.rationale}</p>
-            <button
-              disabled={approvingId === proposal.proposal_id}
-              onClick={async () => {
-                setApprovingId(proposal.proposal_id);
-                try {
-                  await approveActProposal(proposal.proposal_id, "SUPERVISOR");
-                } finally {
-                  setApprovingId(null);
-                }
-              }}
-            >
-              Approve
-            </button>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <button
+                disabled={approvingId === proposal.proposal_id}
+                onClick={async () => {
+                  setApprovingId(proposal.proposal_id);
+                  try {
+                    await approveActProposal(proposal.proposal_id, "SUPERVISOR");
+                  } finally {
+                    setApprovingId(null);
+                  }
+                }}
+              >
+                Approve
+              </button>
+              <SimulateControl proposalId={proposal.proposal_id} />
+            </div>
           </div>
         ))
       )}
@@ -131,14 +204,37 @@ function ActProposalsPanel() {
 }
 
 export function FloorSupervisorView() {
-  const view = useRolePoll(getFloorSupervisorView, []);
+  const { data: view, error } = useRolePoll(getFloorSupervisorView, []);
+
+  // Per-station ledger metrics, fetched exactly once on mount -- the first
+  // build is a real ~105s job on the backend, so this deliberately never
+  // polls. A 409 (no ledger built yet) or any other failure just leaves the
+  // false-alarm-rate annotations off; the alert queue works without them.
+  const [ledgerMetrics, setLedgerMetrics] = useState<Record<string, LedgerMetrics> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getPredictMetricsByStation()
+      .then((metrics) => {
+        if (!cancelled) setLedgerMetrics(metrics);
+      })
+      .catch(() => {
+        // Expected in a fresh environment -- show nothing rather than error.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!view) {
     return (
       <div style={{ padding: "var(--space-8)", color: "var(--color-vellum)" }}>
-        <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
-          Loading line state…
-        </p>
+        {error ? (
+          <ErrorBanner />
+        ) : (
+          <p className="hazard-hatch" style={{ padding: "var(--space-2)" }}>
+            Loading line state…
+          </p>
+        )}
       </div>
     );
   }
@@ -158,6 +254,7 @@ export function FloorSupervisorView() {
         }}
       >
         <p className="eyebrow">Floor Supervisor view</p>
+        {error && <ErrorBanner />}
 
         <HudPanel accentColor={view.active_alert_station_ids.length > 0 ? "var(--color-beacon-red)" : undefined}>
           <p className="eyebrow" style={{ margin: 0 }}>
@@ -179,19 +276,33 @@ export function FloorSupervisorView() {
           {view.spc_alarms.length === 0 ? (
             <p>No stations out of control.</p>
           ) : (
-            view.spc_alarms.map((alarm) => (
-              <div
-                key={alarm.station_id}
-                style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
-              >
-                <p className="eyebrow">
-                  {alarm.station_id} · {alarm.quantity}
-                </p>
-                <StatusBadge token={SPC_STATE_TOKENS[alarm.state]} />
-                {alarm.rule_triggered && <p>{alarm.rule_triggered}</p>}
-                <AssignControl issueId={alarm.station_id} assignedTo={view.issue_assignments[alarm.station_id]} />
-              </div>
-            ))
+            view.spc_alarms.map((alarm) => {
+              const faRate = ledgerMetrics?.[alarm.station_id]?.false_alarm_rate ?? null;
+              return (
+                <div
+                  key={alarm.station_id}
+                  style={{ borderTop: "1px solid var(--color-steel-neutral)", padding: "var(--space-2) 0" }}
+                >
+                  <p className="eyebrow">
+                    {alarm.station_id} · {alarm.quantity}
+                  </p>
+                  <StatusBadge token={SPC_STATE_TOKENS[alarm.state]} />
+                  {alarm.rule_triggered && <p>{alarm.rule_triggered}</p>}
+                  <div style={{ margin: "var(--space-1) 0" }}>
+                    <ConfidenceMeter label="confidence" value={alarm.confidence} />
+                    {faRate !== null && (
+                      <span className="data" style={{ color: "var(--color-steel-neutral)" }}>
+                        station FA rate: {(faRate * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  <AssignControl
+                    issueId={`spc:${alarm.station_id}`}
+                    assignedTo={view.issue_assignments[`spc:${alarm.station_id}`]}
+                  />
+                </div>
+              );
+            })
           )}
         </HudPanel>
 
@@ -211,6 +322,10 @@ export function FloorSupervisorView() {
                   {car.car_id} · at {car.current_station_id}
                 </p>
                 <StatusBadge token={RISK_LEVEL_TOKENS[car.risk_level]} />
+                <div style={{ margin: "var(--space-1) 0" }}>
+                  <ConfidenceMeter label="P(defect)" value={car.probability} />
+                  <ConfidenceMeter label="confidence" value={car.confidence} />
+                </div>
                 <p>
                   {car.stations_remaining} station{car.stations_remaining === 1 ? "" : "s"} until{" "}
                   {car.next_inspection_station_id}
@@ -243,9 +358,12 @@ export function FloorSupervisorView() {
                   {warning.contributing_upstream_station &&
                     ` (from ${warning.contributing_upstream_station})`}
                 </p>
+                <div style={{ margin: "var(--space-1) 0" }}>
+                  <ConfidenceMeter label="confidence" value={warning.confidence} />
+                </div>
                 <AssignControl
-                  issueId={warning.station_id}
-                  assignedTo={view.issue_assignments[warning.station_id]}
+                  issueId={`bottleneck:${warning.station_id}`}
+                  assignedTo={view.issue_assignments[`bottleneck:${warning.station_id}`]}
                 />
               </div>
             ))

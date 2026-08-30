@@ -1,4 +1,7 @@
-"""Statistical process control charts (Xbar-R / EWMA) per sensor, per station.
+"""Statistical process control per sensor, per station: an individuals chart
+scored against four Western Electric run rules (no Xbar-R subgrouping or
+EWMA smoothing -- single readings per car make an individuals chart the
+honest fit).
 
 Control limits come from the station's commissioning_baseline -- what a station
 looks like when healthy, measured once at commissioning -- never from a rolling

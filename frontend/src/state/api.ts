@@ -16,11 +16,13 @@ import type {
   OperatorView,
   PlantManagerView,
   Proposal,
+  ProposalSimulation,
   ReplayControlRequest,
   RunSummary,
   RunToLearnRequest,
   SensorSpec,
   StationSpec,
+  TraceResult,
   TrendState,
 } from "./types";
 
@@ -66,6 +68,18 @@ function writeHeaders(extra: Record<string, string> = {}): Record<string, string
 // real, documented ~105s job on first use, not a hang.
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+// Some endpoints use HTTP status as real signal (trace's 409 "no run loaded"
+// vs 404 "unknown car") -- callers that need to branch on it read .status
+// instead of parsing it back out of the message string.
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function getJson<T>(path: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const url = `${API_BASE}${path}`;
   const controller = new AbortController();
@@ -73,7 +87,10 @@ async function getJson<T>(path: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise
   try {
     const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) {
-      throw new Error(`GET ${url} failed: ${response.status} ${response.statusText}`);
+      throw new ApiError(
+        `GET ${url} failed: ${response.status} ${response.statusText}`,
+        response.status,
+      );
     }
     return (await response.json()) as T;
   } finally {
@@ -90,8 +107,9 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
   });
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
-    throw new Error(
+    throw new ApiError(
       `POST ${url} failed: ${response.status} ${detail?.detail ?? response.statusText}`,
+      response.status,
     );
   }
   return (await response.json()) as T;
@@ -266,15 +284,23 @@ export function approveActProposal(proposalId: string, approverId: string): Prom
   });
 }
 
+export function simulateActProposal(proposalId: string): Promise<ProposalSimulation> {
+  return postJson<ProposalSimulation>(
+    `/api/act/proposals/${encodeURIComponent(proposalId)}/simulate`,
+  );
+}
+
+// 409 when no run is loaded, 404 for a car id unknown to the loaded run --
+// both are expected states the CarPanel handles by status, not failures.
+export function getCarTrace(carId: string): Promise<TraceResult> {
+  return getJson<TraceResult>(`/api/trace/${encodeURIComponent(carId)}`);
+}
+
 // The backend's first build assesses every car in the run against every
 // inspection station it reached -- ~105s observed for a 400-car run (see
 // predict.py's own comment), cached after that. Give it real headroom
 // instead of the default 30s timeout.
 const PREDICT_LEDGER_TIMEOUT_MS = 120_000;
-
-export function getPredictMetrics(): Promise<LedgerMetrics> {
-  return getJson<LedgerMetrics>("/api/predict/metrics", PREDICT_LEDGER_TIMEOUT_MS);
-}
 
 export function getPredictMetricsByStation(): Promise<Record<string, LedgerMetrics>> {
   return getJson<Record<string, LedgerMetrics>>(

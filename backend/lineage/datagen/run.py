@@ -1,6 +1,7 @@
 """Top-level orchestrator: generate_run() ties simulation, ground-truth
 assembly, and CSV/JSON writing together into a run directory."""
 
+import warnings
 from pathlib import Path
 
 from lineage.config.specs import LineSpec
@@ -15,6 +16,21 @@ from lineage.datagen.writer import (
 
 
 def generate_run(line: LineSpec, config: RunConfig, output_root: Path) -> RunArtifacts:
+    # A defect seed aimed at a station this line doesn't have silently
+    # contributes nothing to any reading -- a real trap when the default
+    # run config (which names specific example_42 stations) is used against
+    # a builder-made line. Loud, not fatal: the run still generates, but
+    # nobody should discover the missing scenario only at demo time.
+    line_station_ids = {station.id for station in line.stations}
+    for seed in config.defect_seeds:
+        if seed.station_id not in line_station_ids:
+            warnings.warn(
+                f"defect seed {seed.mechanism.value!r} targets station "
+                f"{seed.station_id!r}, which is not on line {line.plant_name!r} -- "
+                "the seeded scenario will not appear in this run",
+                stacklevel=2,
+            )
+
     result = simulate_run(line, config)
 
     invalid_windows = [

@@ -1,11 +1,60 @@
 // Top bar: replay speed controls, wired to POST /api/replay/control.
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import type { Role } from "../state/types";
 import { useLineageStore } from "../state/store";
 
 const SPEEDS = [1, 10, 60] as const;
+const STALE_AFTER_MS = 5000;
+
+/** Live-stream health chip: colour + shape + text per the status vocabulary
+ * (styles/tokens.ts), never colour alone. Hidden until the first tick ever
+ * lands (a connected socket with no run loaded isn't "stale", it's idle). */
+function WsStatusChip() {
+  const wsConnected = useLineageStore((s) => s.wsConnected);
+  const lastTickAt = useLineageStore((s) => s.lastTickAt);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (wsConnected && lastTickAt === null) return null;
+
+  let glyph: string;
+  let color: string;
+  let text: string;
+  if (!wsConnected) {
+    glyph = "◆";
+    color = "var(--color-beacon-red)";
+    text = "reconnecting";
+  } else {
+    const ageMs = now - (lastTickAt ?? now);
+    if (ageMs < STALE_AFTER_MS) {
+      glyph = "●";
+      color = "var(--color-beacon-green)";
+      text = "live";
+    } else {
+      glyph = "▲";
+      color = "var(--color-beacon-amber)";
+      text = `stale ${Math.floor(ageMs / 1000)}s`;
+    }
+  }
+
+  return (
+    <span
+      className="data"
+      style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}
+    >
+      <span aria-hidden="true" style={{ color }}>
+        {glyph}
+      </span>
+      <span>{text}</span>
+    </span>
+  );
+}
 const ROLES: { value: Role; label: string }[] = [
   { value: "mirror", label: "Mirror" },
   { value: "operator", label: "Operator" },
@@ -93,7 +142,9 @@ export function TopBar() {
       {runs.length > 0 && (
         <select
           onChange={(event) => void loadRun(event.target.value)}
-          defaultValue=""
+          // Derived from the WS tick's own run_id, so the selection survives
+          // remounts (e.g. closing the Builder) as long as a run is playing.
+          value={lineState?.run_id ?? ""}
           aria-label="Select run"
         >
           <option value="" disabled>
@@ -134,11 +185,12 @@ export function TopBar() {
         </span>
       )}
 
-      {lineState && (
-        <span className="data" style={{ marginLeft: "auto" }}>
-          {new Date(lineState.timestamp).toLocaleString()}
-        </span>
-      )}
+      <span style={{ marginLeft: "auto", display: "inline-flex", gap: "var(--space-4)" }}>
+        <WsStatusChip />
+        {lineState && (
+          <span className="data">{new Date(lineState.timestamp).toLocaleString()}</span>
+        )}
+      </span>
     </div>
   );
 }

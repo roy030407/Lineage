@@ -1,4 +1,8 @@
-"""Car model: serial/VIN, spec variant, per-station entry/exit timestamps."""
+"""Car twin: per-station visit history (entry/exit, readings, ambient).
+
+model_variant exists on the twin but every generated car is currently
+"standard" (see twin/ingest.py) -- datagen does not yet vary trim/spec,
+so no downstream logic keys off it."""
 
 from datetime import datetime
 

@@ -304,6 +304,10 @@ export interface ReworkSummary {
 export interface RecurringRootCause {
   station_id: string;
   occurrence_count: number;
+  // occurrence_count stays the total; these split it by whether the origin
+  // station had sensor data to verify the trace against.
+  verified_occurrences: number;
+  suspected_occurrences: number;
   example_car_ids: string[];
 }
 
@@ -337,7 +341,12 @@ export interface SensorRetrofitCandidate {
   cost_per_hour: number;
   value_add_pct: number;
   economic_weight: number;
+  // Total traced-origin count; suspected_defect_occurrences is its
+  // unverifiable-origin subset. Candidates are sensorless stations, so the
+  // suspected count is typically the whole total -- that gap between
+  // "traced here" and "provable" is itself the retrofit argument.
   recurring_defect_occurrences: number;
+  suspected_defect_occurrences: number;
 }
 
 export interface LeadershipView {
@@ -363,4 +372,42 @@ export interface LedgerMetrics {
   recall: number | null;
   false_alarm_rate: number | null;
   trust_score: number | null;
+  // Cars where the model abstained with UNKNOWN_RISK at this station
+  // (per-station rows from GET /api/predict/metrics/by_station).
+  abstention_count: number;
+}
+
+// --- trace ----------------------------------------------------------------
+
+export interface TraceContribution {
+  station_id: string;
+  score: number;
+  deviation_z: number;
+  is_verifiable: boolean;
+}
+
+export interface ExposedCohortCar {
+  car_id: string;
+  confidence: number;
+}
+
+export interface TraceResult {
+  flagged_car_id: string;
+  originating_station_id: string | null;
+  originating_is_verifiable: boolean;
+  contributions: TraceContribution[];
+  exposed_cohort: ExposedCohortCar[];
+}
+
+// --- act simulation -------------------------------------------------------
+
+export interface ProposalSimulation {
+  proposal_id: string;
+  station_id: string;
+  parameter_name: string;
+  current_value: number;
+  proposed_value: number;
+  predicted_defect_rate_delta: number;
+  ci_low: number;
+  ci_high: number;
 }

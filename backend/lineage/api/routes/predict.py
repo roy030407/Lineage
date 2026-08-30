@@ -47,10 +47,10 @@ def _ensure_ledger(state: AppState) -> PredictionLedger:
                 state.line, state.genealogy_store, state.current_run_dir, model
             )
         except Exception as exc:
-            # data/models/ is gitignored (a locally-trained artifact, not
-            # committed), so "no trained risk model" is the expected case in
-            # a fresh clone or CI -- surfaced clearly, not a silently empty
-            # ledger.
+            # risk_v1 is committed (see .gitignore's exception for it), so a
+            # fresh clone normally has a model -- but a retrained/removed
+            # model dir is still a legitimate state, surfaced clearly rather
+            # than as a silently empty ledger.
             raise HTTPException(
                 status_code=409,
                 detail="no prediction ledger available -- no trained risk model was found "
@@ -68,18 +68,24 @@ def get_metrics(
     state: AppState = Depends(get_app_state),
 ) -> LedgerMetrics:
     ledger = _ensure_ledger(state)
-    return compute_metrics(
+    metrics = compute_metrics(
         ledger.all_records(), station_id=station_id, model_version=model_version
     )
+    return metrics.model_copy(update={"abstention_count": ledger.abstention_count(station_id)})
 
 
 @router.get("/api/predict/metrics/by_station")
 def get_metrics_by_station(state: AppState = Depends(get_app_state)) -> dict[str, LedgerMetrics]:
     ledger = _ensure_ledger(state)
     records = ledger.all_records()
-    station_ids = sorted({r.station_id for r in records})
+    # A station whose every assessment was an abstention has no records at
+    # all -- still listed, so "the model always says 'I don't know' here"
+    # is visible rather than the station silently missing from the table.
+    station_ids = sorted({r.station_id for r in records} | ledger.abstention_station_ids())
     return {
-        station_id: compute_metrics(records, station_id=station_id)
+        station_id: compute_metrics(records, station_id=station_id).model_copy(
+            update={"abstention_count": ledger.abstention_count(station_id)}
+        )
         for station_id in station_ids
     }
 

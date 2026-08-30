@@ -325,6 +325,13 @@ class RecurringRootCause(BaseModel):
 
     station_id: str
     occurrence_count: int
+    verified_occurrences: int
+    """Traces whose named origin had sensor data confirming the deviation."""
+    suspected_occurrences: int
+    """Traces that fell back to an unverifiable (manual) origin -- nothing
+    confirmable crossed threshold, so the earliest unverifiable station was
+    named. Counted separately so manual stations aren't silently over-blamed
+    with the same weight as sensor-confirmed origins."""
     example_car_ids: list[str]
 
 
@@ -394,6 +401,12 @@ class SensorRetrofitCandidate(BaseModel):
     (Plant Manager's recurring_root_causes, reused directly -- a manual
     station implicated often is a real, data-backed retrofit signal, not
     an invented one)."""
+    suspected_defect_occurrences: int
+    """The subset of recurring_defect_occurrences where the trace could not
+    confirm the origin with sensor data and fell back to naming this
+    (unverifiable, manual) station. For a sensorless station this is
+    typically all of them -- which is itself the retrofit argument: the
+    line keeps suspecting this station and cannot check."""
 
 
 class LeadershipView(BaseModel):
@@ -573,12 +586,21 @@ def get_plant_manager_view(state: AppState = Depends(get_app_state)) -> PlantMan
     )
 
     origin_cars: dict[str, list[str]] = {}
+    origin_verified: dict[str, int] = {}
     for result in _ensure_trace_results(state):
         origin_cars.setdefault(result.originating_station_id, []).append(result.car_id)
+        if result.originating_is_verifiable:
+            origin_verified[result.originating_station_id] = (
+                origin_verified.get(result.originating_station_id, 0) + 1
+            )
     recurring_root_causes = sorted(
         (
             RecurringRootCause(
-                station_id=station_id, occurrence_count=len(car_ids), example_car_ids=car_ids[:5]
+                station_id=station_id,
+                occurrence_count=len(car_ids),
+                verified_occurrences=origin_verified.get(station_id, 0),
+                suspected_occurrences=len(car_ids) - origin_verified.get(station_id, 0),
+                example_car_ids=car_ids[:5],
             )
             for station_id, car_ids in origin_cars.items()
         ),
@@ -642,10 +664,15 @@ def get_leadership_view(state: AppState = Depends(get_app_state)) -> LeadershipV
     ]
 
     origin_counts: dict[str, int] = {}
+    suspected_counts: dict[str, int] = {}
     for result in _ensure_trace_results(state):
         origin_counts[result.originating_station_id] = (
             origin_counts.get(result.originating_station_id, 0) + 1
         )
+        if not result.originating_is_verifiable:
+            suspected_counts[result.originating_station_id] = (
+                suspected_counts.get(result.originating_station_id, 0) + 1
+            )
 
     candidates = [
         SensorRetrofitCandidate(
@@ -655,6 +682,7 @@ def get_leadership_view(state: AppState = Depends(get_app_state)) -> LeadershipV
             value_add_pct=station.value_add_pct,
             economic_weight=station.cost_per_hour * (station.value_add_pct / 100.0),
             recurring_defect_occurrences=origin_counts.get(station.id, 0),
+            suspected_defect_occurrences=suspected_counts.get(station.id, 0),
         )
         for station in state.line.stations
         if not station.sensors

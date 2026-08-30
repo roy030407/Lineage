@@ -156,6 +156,9 @@ function BuilderCanvasInner() {
 
   const handleCutLink = useCallback(
     async (edge: Edge) => {
+      // Cutting a link removes the whole downstream station, not just the
+      // conveyor -- destructive enough to warrant an explicit confirm.
+      if (!window.confirm(`Remove station ${edge.target} and its link?`)) return;
       setActionError(null);
       try {
         const updated = await removeBuilderStation(edge.target);

@@ -9,6 +9,12 @@ interface LineageStore {
   previousLineState: LineState | null;
   runs: RunSummary[];
 
+  // Live-stream health, driven by wsClient: whether the socket is currently
+  // open, and when the last tick landed (epoch ms) -- lets TopBar tell
+  // "live" apart from "stale" apart from "reconnecting".
+  wsConnected: boolean;
+  lastTickAt: number | null;
+
   selectedStationId: string | null;
   selectedCarId: string | null;
   selectedCarTwin: CarTwin | null;
@@ -27,6 +33,7 @@ interface LineageStore {
   markSceneReady: () => void;
   loadRuns: () => Promise<void>;
   applyLineState: (state: LineState) => void;
+  setWsConnected: (connected: boolean) => void;
 
   selectStation: (stationId: string | null) => void;
   selectCar: (carId: string | null) => Promise<void>;
@@ -56,6 +63,9 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   lineState: null,
   previousLineState: null,
   runs: [],
+
+  wsConnected: false,
+  lastTickAt: null,
 
   selectedStationId: null,
   selectedCarId: null,
@@ -104,8 +114,15 @@ export const useLineageStore = create<LineageStore>((set, get) => ({
   },
 
   applyLineState: (state) => {
-    set((current) => ({ previousLineState: current.lineState, lineState: state }));
+    // Only the WS tick path calls this, so it doubles as the staleness clock.
+    set((current) => ({
+      previousLineState: current.lineState,
+      lineState: state,
+      lastTickAt: Date.now(),
+    }));
   },
+
+  setWsConnected: (connected) => set({ wsConnected: connected }),
 
   selectStation: (stationId) => set({ selectedStationId: stationId, selectedCarId: null }),
 

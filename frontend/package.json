@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "test:coldstart": "playwright test --config playwright.coldstart.config.ts",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.3",
