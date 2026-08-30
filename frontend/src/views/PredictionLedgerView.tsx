@@ -23,6 +23,7 @@ function MetricsRow({ stationId, metrics }: { stationId: string; metrics: Ledger
       <td>{formatRate(metrics.recall)}</td>
       <td>{formatRate(metrics.false_alarm_rate)}</td>
       <td>{formatRate(metrics.trust_score)}</td>
+      <td>{metrics.abstention_count}</td>
     </tr>
   );
 }
@@ -135,6 +136,7 @@ export function PredictionLedgerView() {
                 <th>Recall</th>
                 <th>False alarm rate</th>
                 <th>Trust score</th>
+                <th>Abstained</th>
               </tr>
             </thead>
             <tbody>

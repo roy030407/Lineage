@@ -12,11 +12,11 @@ regenerated uuid.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from lineage.act.ledger import approve as approve_proposal
 from lineage.act.models import ApproverRole, AuditRecord, Proposal, ProposalStatus
-from lineage.act.proposals import propose
+from lineage.act.proposals import propose, simulate
 from lineage.api.deps import AppState, get_app_state
 from lineage.api.routes.views import _ensure_trace_results
 
@@ -32,12 +32,16 @@ def _ensure_proposals(state: AppState) -> list[Proposal]:
     assert state.line is not None  # a loaded engine implies a loaded line
 
     proposals: list[Proposal] = []
-    seen_ids: set[str] = set()
+    seen_targets: set[tuple[str, str]] = set()
     for trace_result in _ensure_trace_results(state):
-        for proposal in propose(trace_result, state.line):
-            if proposal.proposal_id not in seen_ids:
+        for proposal in propose(trace_result, state.line, state.act_setpoints):
+            # Dedup by what the proposal would actually change, not by its
+            # (always-fresh) uuid: many failed inspections tracing to the
+            # same station would otherwise stack near-identical proposals.
+            target = (proposal.station_id, proposal.parameter_name)
+            if target not in seen_targets:
                 proposals.append(proposal)
-                seen_ids.add(proposal.proposal_id)
+                seen_targets.add(target)
 
     state.act_proposals = proposals
     return proposals
@@ -67,9 +71,80 @@ def approve_proposal_endpoint(
     if proposal is None:
         raise HTTPException(status_code=404, detail=f"unknown proposal {proposal_id!r}")
 
+    if proposal.status == ProposalStatus.APPROVED:
+        # Idempotent: re-approving returns the original audit record instead
+        # of appending a duplicate to the append-only trail.
+        existing = state.audit_ledger.latest_for(proposal_id)
+        assert existing is not None  # an APPROVED proposal always has its record
+        return existing
+
     record = approve_proposal(
         proposal, ApproverRole.FLOOR_SUPERVISOR, req.approver_id, state.audit_ledger
     )
     assert index is not None
     proposals[index] = proposal.model_copy(update={"status": ProposalStatus.APPROVED})
+    # The approved value becomes the parameter's known setpoint, so future
+    # proposal generation moves from where the line actually is now.
+    state.act_setpoints[(proposal.station_id, proposal.parameter_name)] = proposal.proposed_value
     return record
+
+
+class SimulateResponse(BaseModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    proposal_id: str
+    station_id: str
+    parameter_name: str
+    current_value: float
+    proposed_value: float
+    predicted_defect_rate_delta: float
+    ci_low: float
+    ci_high: float
+    predicted_throughput_delta: float
+
+
+@router.post("/api/act/proposals/{proposal_id}/simulate")
+def simulate_proposal_endpoint(
+    proposal_id: str, state: AppState = Depends(get_app_state)
+) -> SimulateResponse:
+    """Runs act.proposals.simulate for one proposal -- a read-only analytical
+    projection; nothing about the live line or the proposal changes."""
+    proposals = _ensure_proposals(state)
+    proposal = next((p for p in proposals if p.proposal_id == proposal_id), None)
+    if proposal is None:
+        raise HTTPException(status_code=404, detail=f"unknown proposal {proposal_id!r}")
+    assert state.line is not None  # _ensure_proposals already required a loaded line
+
+    # The deviation that motivated this proposal: the origin station's own
+    # contribution in the trace that produced it.
+    deviation_z = 0.0
+    for trace_result in _ensure_trace_results(state):
+        if (
+            trace_result.car_id == proposal.trace_car_id
+            and trace_result.originating_station_id == proposal.station_id
+        ):
+            contribution = next(
+                (
+                    c
+                    for c in trace_result.ranked_contributions
+                    if c.station_id == proposal.station_id
+                ),
+                None,
+            )
+            if contribution is not None and contribution.deviation_z is not None:
+                deviation_z = contribution.deviation_z
+            break
+
+    effect = simulate(proposal, state.line, current_deviation_z=deviation_z)
+    ci_low, ci_high = effect.defect_rate_confidence_interval
+    return SimulateResponse(
+        proposal_id=proposal.proposal_id,
+        station_id=proposal.station_id,
+        parameter_name=proposal.parameter_name,
+        current_value=proposal.current_value,
+        proposed_value=proposal.proposed_value,
+        predicted_defect_rate_delta=effect.predicted_defect_rate_delta,
+        ci_low=ci_low,
+        ci_high=ci_high,
+        predicted_throughput_delta=effect.predicted_throughput_delta,
+    )

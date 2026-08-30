@@ -16,11 +16,22 @@ allowed step, not the full envelope limit, so a first correction is
 conservative rather than maximal."""
 
 
-def propose(trace_result: TraceResult, line: LineSpec) -> list[Proposal]:
+def propose(
+    trace_result: TraceResult,
+    line: LineSpec,
+    setpoints: dict[tuple[str, str], float] | None = None,
+) -> list[Proposal]:
     """One bounded, single-parameter proposal per changeable parameter at the
     trace's originating station, each carrying a rationale that cites the
     trace evidence directly. Never proposes a readable_param -- only
-    parameters present in station.changeable_params are considered at all."""
+    parameters present in station.changeable_params are considered at all.
+
+    `setpoints` maps (station_id, parameter_name) -> the last approved value
+    for that parameter, so successive proposals move from where the line
+    actually is rather than restarting from the nominal midpoint every time.
+    With no entry (or no mapping at all -- there is no live OT link in this
+    prototype), the range midpoint stands in as the nominal operating point,
+    stated in the rationale rather than hidden."""
     station = next(
         (s for s in line.stations if s.id == trace_result.originating_station_id), None
     )
@@ -38,7 +49,12 @@ def propose(trace_result: TraceResult, line: LineSpec) -> list[Proposal]:
         if envelope is None:
             continue  # no defined safety envelope -- never propose changes to it
 
-        current_value = (param_range.min + param_range.max) / 2  # nominal operating point
+        known_setpoint = (setpoints or {}).get((station.id, parameter_name))
+        current_value = (
+            known_setpoint
+            if known_setpoint is not None
+            else (param_range.min + param_range.max) / 2  # nominal operating point
+        )
         proposed_value = current_value
         if deviation_z is not None and deviation_z != 0:
             direction = -1.0 if deviation_z > 0 else 1.0
@@ -52,10 +68,15 @@ def propose(trace_result: TraceResult, line: LineSpec) -> list[Proposal]:
 
         verifiable_word = "verifiable" if trace_result.originating_is_verifiable else "unverifiable"
         z_clause = f" with deviation_z={deviation_z:.2f}" if deviation_z is not None else ""
+        setpoint_clause = (
+            ""
+            if known_setpoint is not None
+            else " (current value assumed at the nominal midpoint; no approved setpoint on record)"
+        )
         rationale = (
             f"Trace identified {station.id} as the {verifiable_word} origin for car "
             f"{trace_result.car_id}{z_clause}; proposing to adjust {parameter_name} "
-            "toward baseline."
+            f"toward baseline{setpoint_clause}."
         )
 
         proposal = Proposal(
@@ -107,29 +128,30 @@ def _defect_probability(z: float) -> float:
 def simulate(
     proposal: Proposal, line: LineSpec, current_deviation_z: float = 0.0
 ) -> PredictedEffect:
-    """Re-runs the twin forward from the current state with the proposed
-    value, on a forked (deep) copy -- `line` itself is never written to.
-
-    This is an analytical projection, not a full datagen re-simulation:
-    current defect probability is derived from `current_deviation_z` via
+    """Analytical projection of a proposal's effect -- NOT a re-simulation.
+    Nothing here mutates `line` (nothing is written anywhere): current
+    defect probability is derived from `current_deviation_z` via
     `_defect_probability` (grows with |z|, not a shrinking p-value), and the
     predicted probability assumes the proposed change moves the process a
     fraction of the way back toward baseline, proportional to how large a
-    step it is relative to the envelope's allowed range. StationSpec has no
-    live "current setpoint"
-    field to mutate -- changeable_params only declares the legal range a
-    parameter may occupy -- so the fork demonstrates the isolation pattern
-    without a concrete field write; a future live-state model would apply
-    the proposed value to the fork here, never to `line`.
-    """
-    _forked_line = line.model_copy(deep=True)
-
+    step it is relative to the envelope's allowed single-step change. The
+    confidence intervals are stated model assumptions (wider for smaller
+    corrective steps), not empirically fitted -- a full datagen re-run on a
+    forked LineSpec is the honest upgrade path if a real predictive claim
+    is ever needed here."""
     envelope = envelope_for(proposal.parameter_name)
     step_fraction = 0.0
-    if envelope is not None and proposal.current_value != 0:
-        relative_step = abs(
-            (proposal.proposed_value - proposal.current_value) / proposal.current_value
+    if envelope is not None:
+        # A current value of exactly 0 would make a relative step undefined;
+        # measure the step against the envelope's absolute span instead, so
+        # the check degrades to "how big is this move within the legal range"
+        # rather than silently skipping (mirrors act/validator.py).
+        step_base = (
+            abs(proposal.current_value)
+            if proposal.current_value != 0
+            else envelope.absolute_max - envelope.absolute_min
         )
+        relative_step = abs(proposal.proposed_value - proposal.current_value) / step_base
         step_fraction = min(1.0, relative_step / envelope.max_single_step_change_pct)
 
     current_defect_probability = _defect_probability(current_deviation_z)

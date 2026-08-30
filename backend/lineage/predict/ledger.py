@@ -53,9 +53,26 @@ class PredictionLedger:
 
     def __init__(self) -> None:
         self._records: list[PredictionRecord] = []
+        self._abstentions: dict[str, int] = {}
+        """station_id -> how many assessments came back UNKNOWN_RISK there.
+        Abstentions carry no scoreable outcome, so they are counted rather
+        than turned into records -- but counted, not dropped: "how often the
+        model honestly said 'I don't know' at this station" is itself a
+        sensor-coverage metric."""
 
     def record(self, prediction_record: PredictionRecord) -> None:
         self._records.append(prediction_record)
+
+    def record_abstention(self, station_id: str) -> None:
+        self._abstentions[station_id] = self._abstentions.get(station_id, 0) + 1
+
+    def abstention_count(self, station_id: str | None = None) -> int:
+        if station_id is not None:
+            return self._abstentions.get(station_id, 0)
+        return sum(self._abstentions.values())
+
+    def abstention_station_ids(self) -> set[str]:
+        return set(self._abstentions)
 
     def all_records(self) -> list[PredictionRecord]:
         return list(self._records)
@@ -100,7 +117,8 @@ def build_ledger_from_run(
                 model=model,
             )
             if assessment.risk_level == RiskLevel.UNKNOWN_RISK:
-                continue  # nothing actionable to score
+                ledger.record_abstention(station_id)
+                continue  # no scoreable outcome, but the abstention itself is counted
 
             visit = next((v for v in twin.visits if v.station_id == station_id), None)
             if visit is None:
@@ -139,6 +157,11 @@ class LedgerMetrics(BaseModel):
     standard single-number summary, not a domain-specific formula; there is
     no one fixed definition of "trust score" so this is a judgment call,
     named here rather than left implicit."""
+    abstention_count: int = 0
+    """How many assessments in scope returned UNKNOWN_RISK and were therefore
+    never scored -- the model saying "not enough sensor coverage to call it".
+    Filled in by the API layer from PredictionLedger.abstention_count();
+    compute_metrics itself only ever sees scoreable records."""
 
 
 def compute_metrics(

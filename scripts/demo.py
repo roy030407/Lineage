@@ -33,19 +33,9 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BACKEND_DIR = REPO_ROOT / "backend"
-sys.path.insert(0, str(BACKEND_DIR))
-
-from lineage.act.ledger import AuditLedger, approve  # noqa: E402
-from lineage.act.models import ApproverRole  # noqa: E402
-from lineage.act.proposals import propose, simulate  # noqa: E402
-from lineage.config.specs import LineSpec  # noqa: E402
-from lineage.datagen.models import RunConfig  # noqa: E402
-from lineage.trace.lineage_query import trace  # noqa: E402
-from lineage.twin.ingest import from_generated_run  # noqa: E402
 
 RUN_ID = "default_400_car_run"
 RUN_DIR = BACKEND_DIR / "data" / "runs" / RUN_ID
-LINE_PATH = BACKEND_DIR / "data" / "lines" / "example_42.yaml"
 API_BASE = "http://localhost:8000"
 
 # 'load' alone can take ~20s for a 400-car run (genealogy_store construction),
@@ -165,16 +155,16 @@ def main() -> None:
         print(f"  trust score:       {metrics['trust_score']}")
     except httpx.HTTPStatusError:
         print(
-            "\nNo prediction ledger available for this run -- data/models/ is "
-            "gitignored, so a fresh clone or CI environment has no trained "
-            "risk model yet. (Same message the UI itself shows, not hidden.)"
+            "\nNo prediction ledger available for this run -- no trained risk "
+            "model was found under data/models/risk_v1. (Same message the UI "
+            "itself shows, not hidden.)"
         )
     print("\nSwitch to the 'Prediction Ledger' role view in the browser now.")
     pause()
 
     banner("ACT 3 -- TRACE: root-causing it back")
-    print("Trace has no UI yet -- this calls the exact same function a future")
-    print(f"role view would, directly: tracing {flagged_car} back from {detected_station}.")
+    print("This is the same GET /api/trace endpoint the browser's car panel")
+    print(f"calls ('Trace root cause'): tracing {flagged_car} back from {detected_station}.")
     print(
         f"Watch which station it names as the origin -- the seeded scenario planted "
         f"a drift at {origin_station}, but Trace scores EVERY upstream station's "
@@ -182,89 +172,106 @@ def main() -> None:
         "the scenario was written around. Real background variance can outscore "
         "the seeded signal for any individual car; that's a feature, not a bug."
     )
-    line = LineSpec.from_yaml(LINE_PATH)
-    run_config = RunConfig.model_validate_json((RUN_DIR / "run_config.json").read_text())
-    store = from_generated_run(line, RUN_DIR, run_config)
-    trace_result = trace(
-        line=line, store=store, car_id=flagged_car, flagged_at_station_id=detected_station
+    response = client.get(
+        f"{API_BASE}/api/trace/{flagged_car}", params={"station_id": detected_station}
     )
+    response.raise_for_status()
+    trace_result = response.json()
 
     print(
-        f"\nOriginating station: {trace_result.originating_station_id} "
-        f"(verifiable: {trace_result.originating_is_verifiable})"
+        f"\nOriginating station: {trace_result['originating_station_id']} "
+        f"(verifiable: {trace_result['originating_is_verifiable']})"
     )
-    if trace_result.originating_station_id != origin_station:
+    if trace_result["originating_station_id"] != origin_station:
         print(
             f"(Differs from the seeded origin {origin_station}, which is still visible "
             "further down the ranked list below -- both deviations are real.)"
         )
     print("Ranked contributions:")
-    for cause in trace_result.ranked_contributions[:5]:
-        print(f"  {cause.station_id}: score={cause.contribution_score:.2f} z={cause.deviation_z}")
-    print(f"\n{len(trace_result.affected_cars)} other cars found exposed under similar conditions:")
-    for car in trace_result.affected_cars[:5]:
-        print(f"  {car.car_id}: confidence={car.exposure_confidence:.2f}")
+    for cause in trace_result["contributions"][:5]:
+        print(f"  {cause['station_id']}: score={cause['score']:.2f} z={cause['deviation_z']}")
+    cohort = trace_result["exposed_cohort"]
+    print(f"\n{len(cohort)} other cars found exposed under similar conditions:")
+    for car in cohort[:5]:
+        print(f"  {car['car_id']}: confidence={car['confidence']:.2f}")
     pause()
 
     banner("ACT 4 -- ACT: a bounded, auditable proposal")
-    print("Act has no UI yet either -- this is the same bounded-proposal engine")
-    print("a floor supervisor's approval screen would call.")
-    proposals = propose(trace_result, line)
+    print("The same proposal/simulate/approve endpoints the Floor Supervisor")
+    print("screen uses -- every failed inspection in the run, traced and turned")
+    print("into one bounded, envelope-checked proposal per (station, parameter):")
+    response = client.get(f"{API_BASE}/api/act/proposals")
+    response.raise_for_status()
+    proposals = response.json()
     if not proposals:
-        print(
-            f"\nNo changeable parameters at {trace_result.originating_station_id} "
-            "to propose against in this LineSpec."
-        )
+        print("\nNo proposals -- no failed inspection traced to a station with")
+        print("changeable parameters in this run.")
     else:
-        proposal = proposals[0]
-        print(f"\nProposal {proposal.proposal_id}:")
-        print(
-            f"  {proposal.station_id}.{proposal.parameter_name}: "
-            f"{proposal.current_value} -> {proposal.proposed_value}"
+        # Prefer the proposal born from the station Act 3 just implicated.
+        proposal = next(
+            (p for p in proposals if p["station_id"] == trace_result["originating_station_id"]),
+            proposals[0],
         )
-        print(f"  rationale: {proposal.rationale}")
+        print(f"\nProposal {proposal['proposal_id']} (of {len(proposals)} total):")
+        print(
+            f"  {proposal['station_id']}.{proposal['parameter_name']}: "
+            f"{proposal['current_value']} -> {proposal['proposed_value']}"
+        )
+        print(f"  rationale: {proposal['rationale']}")
 
-        origin_cause = next(
-            (
-                c
-                for c in trace_result.ranked_contributions
-                if c.station_id == trace_result.originating_station_id
-            ),
-            None,
+        response = client.post(
+            f"{API_BASE}/api/act/proposals/{proposal['proposal_id']}/simulate"
         )
-        deviation_z = (origin_cause.deviation_z if origin_cause else None) or 0.0
-        effect = simulate(proposal, line, current_deviation_z=deviation_z)
-        print("\nForked-simulation prediction (never touches the live line):")
+        response.raise_for_status()
+        effect = response.json()
+        print("\nAnalytical projection (read-only -- never touches the live line):")
         print(
-            f"  predicted defect-rate delta: {effect.predicted_defect_rate_delta:+.3f} "
-            f"(95% CI {effect.defect_rate_confidence_interval})"
+            f"  predicted defect-rate delta: {effect['predicted_defect_rate_delta']:+.3f} "
+            f"(95% CI [{effect['ci_low']:+.3f}, {effect['ci_high']:+.3f}])"
         )
 
-        ledger = AuditLedger()
-        record = approve(proposal, ApproverRole.FLOOR_SUPERVISOR, "demo-supervisor", ledger)
+        response = client.post(
+            f"{API_BASE}/api/act/proposals/{proposal['proposal_id']}/approve",
+            json={"approver_id": "demo-supervisor"},
+        )
+        response.raise_for_status()
+        record = response.json()
         print(
-            f"\nApproved by {record.approver_role.value} ({record.approver_id}) "
-            f"at {record.timestamp}. Immutable audit record written -- "
-            f"{len(ledger.all_records())} record(s) in this session's ledger."
+            f"\nApproved by {record['approver_role']} ({record['approver_id']}) "
+            f"at {record['timestamp']}. Audit record appended to the backend's "
+            "JSONL audit log -- it survives a restart, and the approved value "
+            "becomes the parameter's setpoint for future proposals."
         )
     pause()
 
     banner("ACT 5 -- LEADERSHIP: a real, scoped role view")
     print("Operator (one station, nothing else), Floor Supervisor (the full line")
     print("plus active alerts), and Plant Manager are all live in the browser's")
-    print("role selector too. Leadership is the narrowest: its response has no")
-    print("per-station field at all, enforced by the response model itself --")
-    print("not the frontend choosing not to render one. Calling it for real:")
+    print("role selector too. Leadership gets no live per-station state at all,")
+    print("enforced by the response model itself -- not the frontend choosing")
+    print("not to render it. Calling it for real:")
     response = client.get(f"{API_BASE}/api/view/leadership")
     response.raise_for_status()
     leadership = response.json()
-    print(f"\nGET /api/view/leadership -> {leadership}")
-    summary = leadership["summary"]
-    print(f"  occupied stations:      {summary['occupied_station_count']}")
-    print(f"  stations in alarm:      {summary['alarm_station_count']}")
-    print(f"  avg upstream buffer:    {summary['average_upstream_buffer_depth']}")
-    print("That's the entire response -- no station list, no car list, nothing")
-    print("to redact on the way to the screen because it was never fetched.")
+    print("\nGET /api/view/leadership ->")
+    print(f"  total cost:        {leadership['total_cost_per_hour']:.2f}/hr")
+    print(f"  value-added cost:  {leadership['total_value_added_cost_per_hour']:.2f}/hr")
+    print(f"  value-added ratio: {leadership['value_added_ratio']:.1%}")
+    candidates = leadership["sensor_retrofit_candidates"]
+    print(
+        f"  sensor retrofit shortlist: {len(candidates)} manual stations, ranked by "
+        "recurring traced-defect origins x economic weight."
+    )
+    if candidates:
+        top = candidates[0]
+        print(
+            f"  top candidate: {top['station_id']} "
+            f"({top['recurring_defect_occurrences']} traced origins this run)"
+        )
+    print("\nNo car list, no live station state, no alarms -- the only per-station")
+    print("data here is the retrofit business shortlist, aggregated from run")
+    print("history. The browser's Leadership view turns this into a payback and")
+    print("phased-rollout panel, assumptions stated on screen.")
     pause()
 
     banner("ACT 6 -- BUILDER: a live mid-line station insert")

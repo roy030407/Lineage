@@ -29,6 +29,10 @@ backend/data/runs/*
 !backend/data/runs/default_400_car_run/
 !backend/data/runs/default_400_car_run/**
 
+# Runtime-appended Act audit trail (JSONL, append-only) -- machine-local
+# history, not source.
+backend/data/audit/
+
 # Trained models -- regenerate with scripts/train_risk_model.py. risk_v1 is
 # committed on purpose: training takes several minutes (see README's Known
 # limitations), far too heavy to ever run at boot, so a fresh deploy needs

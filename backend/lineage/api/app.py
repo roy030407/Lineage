@@ -1,6 +1,7 @@
 """FastAPI app factory."""
 
 import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -14,6 +15,7 @@ from lineage.api.routes.datagen import router as datagen_router
 from lineage.api.routes.line import router as line_router
 from lineage.api.routes.mirror import router as mirror_router
 from lineage.api.routes.predict import router as predict_router
+from lineage.api.routes.trace import router as trace_router
 from lineage.api.routes.views import router as views_router
 from lineage.config.loader import load_line_spec
 from lineage.datagen.cli import build_default_run_config
@@ -43,14 +45,25 @@ def _ensure_default_run_exists() -> None:
 async def _tick_loop() -> None:
     while True:
         await asyncio.sleep(TICK_INTERVAL_REAL_S)
-        state = get_app_state()
-        if state.engine is None:
-            continue
-        if state.engine.clock.mode == PlaybackMode.PAUSED:
-            continue
-        line_state = state.engine.tick()
-        state.snapshot_history.push(line_state)
-        await state.connection_manager.broadcast(line_state)
+        try:
+            state = get_app_state()
+            if state.engine is None:
+                continue
+            if state.engine.clock.mode == PlaybackMode.PAUSED:
+                continue
+            # engine.tick() re-scans run data and measurably grows to
+            # seconds late in a run (see README's Known limitations) --
+            # run it in a worker thread so a slow tick never blocks the
+            # event loop that serves every request and WebSocket send.
+            line_state = await asyncio.to_thread(state.engine.tick)
+            state.snapshot_history.push(line_state)
+            await state.connection_manager.broadcast(line_state)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # One bad tick must never silently kill the loop -- that would
+            # freeze the live view for the rest of the process's life.
+            logging.getLogger(__name__).exception("tick loop iteration failed; continuing")
 
 
 @asynccontextmanager
@@ -88,6 +101,7 @@ def create_app() -> FastAPI:
     app.include_router(views_router)
     app.include_router(builder_router)
     app.include_router(predict_router)
+    app.include_router(trace_router)
     app.include_router(act_router)
     app.include_router(datagen_router)
     return app

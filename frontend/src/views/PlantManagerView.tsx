@@ -145,7 +145,12 @@ export function PlantManagerView() {
               {view.recurring_root_causes.map((cause) => (
                 <tr key={cause.station_id}>
                   <td>{cause.station_id}</td>
-                  <td>{cause.occurrence_count}</td>
+                  <td title={`${cause.occurrence_count} total`}>
+                    {cause.verified_occurrences} verified{" "}
+                    <span style={{ color: "var(--color-steel-neutral)" }}>
+                      · {cause.suspected_occurrences} suspected
+                    </span>
+                  </td>
                   <td>{cause.example_car_ids.join(", ")}</td>
                 </tr>
               ))}

@@ -190,6 +190,7 @@ def test_affected_cars_finds_similar_deviations_in_window_only():
     assert "CAR-004" in affected_ids
     assert "CAR-002" not in affected_ids
     assert "CAR-003" not in affected_ids
+    assert "CAR-000" not in affected_ids  # the flagged car is never its own cohort
 
 
 def test_trace_end_to_end_returns_full_result():
